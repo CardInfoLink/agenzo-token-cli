@@ -1,0 +1,53 @@
+{
+  "name": "agent-token-admin",
+  "version": "0.1.0",
+  "description": "CLI tool for the Agent Payment API",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "agent-token-admin": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "README_EN.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CardInfoLink/agent-token-cli.git"
+  },
+  "keywords": [
+    "cli",
+    "agent",
+    "payment",
+    "token"
+  ],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/CardInfoLink/agent-token-cli/issues"
+  },
+  "homepage": "https://github.com/CardInfoLink/agent-token-cli#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@inquirer/prompts": "^8.4.2",
+    "commander": "^14.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "fast-check": "^4.7.0",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.5"
+  }
+}

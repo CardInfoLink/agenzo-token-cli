@@ -1,0 +1,25 @@
+# Source code
+src/
+tests/
+scripts/
+
+# Config files
+tsconfig.json
+tsup.config.ts
+vitest.config.ts
+.kiro/
+
+# Dev files
+.gitignore
+.npmignore
+.DS_Store
+.env
+.env.local
+coverage/
+.kiro_tmp/
+CONTRIBUTING.md
+AGENT_CLI.md
+
+# IDE
+.idea/
+.vscode/
