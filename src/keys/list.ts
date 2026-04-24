@@ -31,12 +31,11 @@ export function registerListCommand(
           console.log(Formatter.status('info', 'No API Keys found'));
           return;
         }
-        const headers = ['ID', 'Developer', 'Name', 'Prefix', 'Status', 'Last Used'];
+        const headers = ['ID', 'Developer', 'Name', 'Status', 'Last Used'];
         const rows = result.data.map((k) => [
           k.id,
           k.developer_id,
           k.name,
-          k.key_prefix,
           k.status,
           k.last_used_at ?? 'Never',
         ]);

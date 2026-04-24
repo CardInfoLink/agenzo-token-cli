@@ -12,15 +12,15 @@ export function registerCreateCommand(
   parent
     .command('create')
     .description('Create a developer')
-    .option('--dev-name <name>', 'Developer name')
-    .option('--dev-email <email>', 'Developer email')
+    .option('--developer-name <name>', 'Developer name')
+    .option('--developer-email <email>', 'Developer email')
     .action(async (options) => {
       const token = await deps.authService.getValidAccessToken();
 
-      const name = await PromptEngine.resolveInput(options.devName, {
+      const name = await PromptEngine.resolveInput(options.developerName, {
         message: 'Developer name:',
       });
-      const email = await PromptEngine.resolveInput(options.devEmail, {
+      const email = await PromptEngine.resolveInput(options.developerEmail, {
         message: 'Developer email:',
       });
 

@@ -17,7 +17,7 @@ npm install -g agenzo-token-cli
 agenzo-token-cli login --email your@email.com
 
 # 2. Create a developer
-agenzo-token-cli developers create --dev-name "My Agent" --dev-email agent@example.com
+agenzo-token-cli developers create --developer-name "My Agent" --developer-email agent@example.com
 
 # 3. Create an API Key
 agenzo-token-cli keys create --developer-id dev_01KPX... --key-name "Production Key"
@@ -25,8 +25,13 @@ agenzo-token-cli keys create --developer-id dev_01KPX... --key-name "Production 
 # 4. Add a payment method (card) → returns payment-method-id (e.g. pm_01KPX...)
 agenzo-token-cli payment-methods add --api-key ak_xxx --card-email user@example.com
 
-# 5. Create a VCN payment token (use payment-method-id from step 4)
-agenzo-token-cli payment-tokens create --type vcn --api-key ak_xxx --payment-method-id pm_01KPX... --member mem_001 --amount 500
+# 5. Create a payment token (use payment-method-id from step 4)
+# VCN (virtual card)
+agenzo-token-cli payment-tokens create --type vcn --api-key ak_xxx --payment-method-id pm_01KPX... --member mem_001
+# Network Token
+agenzo-token-cli payment-tokens create --type network-token --api-key ak_xxx --payment-method-id pm_01KPX... --member mem_001
+# X402 (on-chain signature)
+agenzo-token-cli payment-tokens create --type x402 --api-key ak_xxx --payment-method-id pm_01KPX... --member mem_001
 ```
 
 ## Commands

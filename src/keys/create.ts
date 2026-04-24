@@ -64,7 +64,6 @@ export function registerCreateCommand(
             ['Key ID', key.id],
             ['Developer ID', key.developer_id],
             ['Name', key.name],
-            ['Prefix', key.key_prefix],
             ['Status', key.status],
           ]),
         );

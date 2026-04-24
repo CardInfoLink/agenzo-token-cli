@@ -37,8 +37,8 @@ export function registerListCommand(
           pm.id,
           pm.type,
           pm.brand ?? '-',
-          pm.first_six ?? '-',
-          pm.last_four ?? '-',
+          pm.first6 ?? '-',
+          pm.last4 ?? '-',
           pm.status,
         ]);
         console.log(Formatter.table(headers, rows));

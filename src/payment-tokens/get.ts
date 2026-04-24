@@ -2,7 +2,6 @@ import { Command } from 'commander';
 import { ApiClient } from '../api/client.js';
 import { PromptEngine } from '../utils/prompt-engine.js';
 import { Formatter } from '../utils/formatter.js';
-import { PaymentToken } from '../types/api.js';
 
 export function registerGetCommand(
   parent: Command,
@@ -17,7 +16,7 @@ export function registerGetCommand(
         message: 'API Key:',
       });
 
-      const result = await deps.apiClient.get<PaymentToken>(
+      const result = await deps.apiClient.get<Record<string, unknown>>(
         `/payment-tokens/${paymentTokenId}`,
         { type: 'api-key', key: apiKey },
       );
@@ -32,47 +31,57 @@ export function registerGetCommand(
     });
 }
 
-function formatPaymentToken(token: PaymentToken): void {
-  switch (token.type) {
-    case 'vcn':
-      console.log(
-        Formatter.keyValue([
-          ['Token ID', token.id],
-          ['Type', 'VCN'],
-          ['Card Number', token.card_number],
-          ['Expiry', token.expiry],
-          ['CVC', token.cvc],
-          ['Last 4', token.last_four],
-          ['Limit', String(token.amount_limit)],
-          ['Currency', token.currency],
-          ['Status', token.status],
-        ]),
-      );
-      break;
-    case 'network_token':
-      console.log(
-        Formatter.keyValue([
-          ['Token ID', token.id],
-          ['Type', 'Network Token'],
-          ['Brand', token.brand],
-          ['First 6', token.token_first_six],
-          ['Last 4', token.token_last_four],
-          ['ECI', token.eci],
-          ['Cryptogram', token.cryptogram],
-          ['Expiry', token.expiry],
-          ['Value', token.value],
-        ]),
-      );
-      break;
-    case 'x402':
-      console.log(
-        Formatter.keyValue([
-          ['Token ID', token.id],
-          ['Type', 'X402'],
-          ['Status', token.status],
-          ['Signature Value', token.signature_value],
-        ]),
-      );
-      break;
+function formatPaymentToken(data: Record<string, unknown>): void {
+  const type = String(data.type ?? '');
+  const id = String(data.id ?? '');
+  const status = String(data.status ?? '');
+
+  if (type === 'vcn') {
+    const vcn = (data.vcn as Record<string, unknown>) ?? {};
+    console.log(
+      Formatter.keyValue([
+        ['Token ID', id],
+        ['Type', 'VCN'],
+        ['Card Number', String(vcn.pan ?? '-')],
+        ['Expiry', String(vcn.expiry ?? '-')],
+        ['CVC', String(vcn.cvv ?? '-')],
+        ['Last 4', String(vcn.last4 ?? '-')],
+        ['Limit', `$${(Number(vcn.spend_limit_cents ?? 0) / 100).toFixed(2)}`],
+        ['Balance', `$${(Number(vcn.balance_cents ?? 0) / 100).toFixed(2)}`],
+        ['Currency', String(vcn.currency ?? 'USD')],
+        ['Status', String(vcn.status ?? status)],
+      ]),
+    );
+  } else if (type === 'network_token') {
+    const nt = (data.network_token as Record<string, unknown>) ?? {};
+    console.log(
+      Formatter.keyValue([
+        ['Token ID', id],
+        ['Type', 'Network Token'],
+        ['Brand', String(nt.payment_brand ?? nt.brand ?? '-')],
+        ['Token Card', String(nt.last4_no ?? '-')],
+        ['ECI', String(nt.eci ?? '-')],
+        ['Cryptogram', String(nt.token_cryptogram ?? '-')],
+        ['Expiry', String(nt.expiry_date ?? '-')],
+        ['Value', String(nt.value ?? '-')],
+        ['Status', status],
+      ]),
+    );
+  } else if (type === 'x402') {
+    const x402 = (data.x402 as Record<string, unknown>) ?? {};
+    console.log(
+      Formatter.keyValue([
+        ['Token ID', id],
+        ['Type', 'X402'],
+        ['Status', status],
+        ['Signature Value', String(x402.signature_value ?? '-')],
+      ]),
+    );
+  } else {
+    console.log(Formatter.keyValue([
+      ['Token ID', id],
+      ['Type', type],
+      ['Status', status],
+    ]));
   }
 }

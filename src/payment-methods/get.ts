@@ -30,8 +30,8 @@ export function registerGetCommand(
           ['Status', pm.status],
         ];
         if (pm.brand) entries.push(['Brand', pm.brand]);
-        if (pm.first_six) entries.push(['First 6', pm.first_six]);
-        if (pm.last_four) entries.push(['Last 4', pm.last_four]);
+        if (pm.first6) entries.push(['First 6', pm.first6]);
+        if (pm.last4) entries.push(['Last 4', pm.last4]);
         entries.push(['Created', pm.created_at]);
         console.log(Formatter.keyValue(entries));
       } else {

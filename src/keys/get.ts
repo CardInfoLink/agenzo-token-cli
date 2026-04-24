@@ -26,7 +26,6 @@ export function registerGetCommand(
             ['Key ID', k.id],
             ['Developer ID', k.developer_id],
             ['Name', k.name],
-            ['Prefix', k.key_prefix],
             ['Status', k.status],
             ['Last Used', k.last_used_at ?? 'Never'],
             ['Created', k.created_at],

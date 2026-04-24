@@ -46,7 +46,6 @@ export function registerRotateCommand(
           Formatter.keyValue([
             ['Key ID', key.id],
             ['Name', key.name],
-            ['Prefix', key.key_prefix],
             ['Status', key.status],
           ]),
         );
