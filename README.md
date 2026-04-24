@@ -45,6 +45,8 @@ agenzo-token-cli payment-tokens create --type x402 --api-key ak_xxx --payment-me
 | `keys create / list / get / rotate / disable` | API Key management |
 | `payment-methods add / list / get / disable` | Payment method management |
 | `payment-tokens create / list / get / revoke` | Payment tokens (VCN / Network Token / X402) |
+| `config set-host <host>` | Set API host (e.g. for local dev) |
+| `config show` | Show current configuration |
 
 ## Authentication
 

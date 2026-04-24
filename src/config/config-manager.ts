@@ -6,7 +6,8 @@ import { ConfigError } from '../utils/errors.js';
 
 const DEFAULT_CONFIG: AppConfig = {
   active_org: null,
-  api_base_url: 'https://agenzo-token.everonet.com/api/v3/agent-pay',
+  api_host: 'https://agenzo-token.everonet.com',
+  api_path: '/api/v3/agent-pay',
 };
 
 export class ConfigManager {
@@ -27,7 +28,20 @@ export class ConfigManager {
     try {
       const content = await readFile(this.configPath, 'utf-8');
       try {
-        return JSON.parse(content) as AppConfig;
+        const raw = JSON.parse(content) as Record<string, unknown>;
+        // Migrate old api_base_url format
+        if (raw.api_base_url && !raw.api_host) {
+          const url = String(raw.api_base_url);
+          const pathIndex = url.indexOf('/api/');
+          raw.api_host = pathIndex > 0 ? url.slice(0, pathIndex) : url;
+          raw.api_path = pathIndex > 0 ? url.slice(pathIndex) : DEFAULT_CONFIG.api_path;
+          delete raw.api_base_url;
+        }
+        return {
+          active_org: (raw.active_org as string) ?? null,
+          api_host: (raw.api_host as string) ?? DEFAULT_CONFIG.api_host,
+          api_path: (raw.api_path as string) ?? DEFAULT_CONFIG.api_path,
+        };
       } catch {
         throw new ConfigError(
           `Invalid config file: ${this.configPath}`,
@@ -61,6 +75,19 @@ export class ConfigManager {
 
   async getApiBaseUrl(): Promise<string> {
     const config = await this.load();
-    return config.api_base_url;
+    const host = config.api_host.replace(/\/+$/, '');
+    const path = config.api_path.startsWith('/') ? config.api_path : `/${config.api_path}`;
+    return `${host}${path}`;
+  }
+
+  async setApiHost(host: string): Promise<void> {
+    const config = await this.load();
+    config.api_host = host;
+    await this.save(config);
+  }
+
+  async getApiHost(): Promise<string> {
+    const config = await this.load();
+    return config.api_host;
   }
 }

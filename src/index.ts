@@ -11,6 +11,9 @@ import { CliError, AuthError } from './utils/errors.js';
 import { registerLoginCommand } from './auth/login.js';
 import { registerLogoutCommand } from './auth/logout.js';
 
+// Config commands
+import { registerConfigCommand } from './config/set.js';
+
 // Orgs commands
 import { registerMeCommand } from './orgs/me.js';
 import { registerUpdateCommand as registerOrgUpdateCommand } from './orgs/update.js';
@@ -72,6 +75,9 @@ async function main() {
   // Register top-level auth commands
   registerLoginCommand(program, { authService });
   registerLogoutCommand(program, { authService });
+
+  // Config command
+  registerConfigCommand(program, { configManager });
 
   // Orgs command group
   const orgsCmd = program.command('orgs').description('Organization management');

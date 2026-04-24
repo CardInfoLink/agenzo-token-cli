@@ -1,6 +1,7 @@
 export interface AppConfig {
   active_org: string | null;
-  api_base_url: string;
+  api_host: string;
+  api_path: string;
 }
 
 export interface OrgCredential {
