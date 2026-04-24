@@ -14,7 +14,7 @@ export class ConfigManager {
   private readonly configPath: string;
 
   constructor(basePath?: string) {
-    this.basePath = basePath ?? join(homedir(), '.agenzo-pay');
+    this.basePath = basePath ?? join(homedir(), '.agenzo-token-cli');
     this.configPath = join(this.basePath, 'config.json');
   }
 

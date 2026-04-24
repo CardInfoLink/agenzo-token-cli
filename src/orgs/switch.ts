@@ -17,7 +17,7 @@ export function registerSwitchCommand(
           Formatter.status('error', `Organization ${orgId} not signed in locally`),
         );
         console.error(
-          Formatter.status('info', 'Please run agenzo-pay login to sign in to this organization'),
+          Formatter.status('info', 'Please run agenzo-token-cli login to sign in to this organization'),
         );
         return;
       }

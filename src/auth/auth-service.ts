@@ -91,11 +91,11 @@ export class AuthService {
 
       if (!result.success) {
         if (result.errorCode === 1101) {
-          throw new AuthError('Magic link expired', 'Please run agenzo-pay login again');
+          throw new AuthError('Magic link expired', 'Please run agenzo-token-cli login again');
         }
         throw new AuthError(
           `Polling failed: [${result.errorCode}] ${result.errorMessage}`,
-          'Please run agenzo-pay login again',
+          'Please run agenzo-token-cli login again',
         );
       }
 
@@ -132,20 +132,20 @@ export class AuthService {
       }
 
       if (data.status === 'EXPIRED') {
-        throw new AuthError('Magic link expired', 'Please run agenzo-pay login again');
+        throw new AuthError('Magic link expired', 'Please run agenzo-token-cli login again');
       }
 
       // PENDING — wait and retry
       await this.sleep(POLL_INTERVAL_MS);
     }
 
-    throw new AuthError('Login timed out (10 minutes)', 'Please run agenzo-pay login again');
+    throw new AuthError('Login timed out (10 minutes)', 'Please run agenzo-token-cli login again');
   }
 
   async logout(): Promise<void> {
     const orgId = await this.configManager.getActiveOrg();
     if (!orgId) {
-      throw new AuthError('Not signed in', 'Please run agenzo-pay login first');
+      throw new AuthError('Not signed in', 'Please run agenzo-token-cli login first');
     }
 
     const credential = await this.credentialStore.get(orgId);
@@ -167,12 +167,12 @@ export class AuthService {
   async getValidAccessToken(): Promise<string> {
     const orgId = await this.configManager.getActiveOrg();
     if (!orgId) {
-      throw new AuthError('Not signed in', 'Please run agenzo-pay login first');
+      throw new AuthError('Not signed in', 'Please run agenzo-token-cli login first');
     }
 
     const credential = await this.credentialStore.get(orgId);
     if (!credential) {
-      throw new AuthError('Not signed in', 'Please run agenzo-pay login first');
+      throw new AuthError('Not signed in', 'Please run agenzo-token-cli login first');
     }
 
     const now = Math.floor(Date.now() / 1000);
@@ -188,7 +188,7 @@ export class AuthService {
   async refreshToken(orgId: string): Promise<void> {
     const credential = await this.credentialStore.get(orgId);
     if (!credential) {
-      throw new AuthError('Not signed in', 'Please run agenzo-pay login first');
+      throw new AuthError('Not signed in', 'Please run agenzo-token-cli login first');
     }
 
     const result = await this.apiClient.post<RefreshResponse>(
@@ -199,11 +199,11 @@ export class AuthService {
 
     if (!result.success) {
       if (result.errorCode === 1002) {
-        throw new AuthError('Session expired', 'Please run agenzo-pay login again');
+        throw new AuthError('Session expired', 'Please run agenzo-token-cli login again');
       }
       throw new AuthError(
         `Token refresh failed: [${result.errorCode}] ${result.errorMessage}`,
-        'Please run agenzo-pay login again',
+        'Please run agenzo-token-cli login again',
       );
     }
 

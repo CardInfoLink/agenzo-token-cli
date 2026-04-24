@@ -1,6 +1,6 @@
 # Contributing
 
-感谢你对 agenzo-pay 的贡献兴趣！
+感谢你对 agenzo-token-cli 的贡献兴趣！
 
 ## 开发环境
 

@@ -1,11 +1,11 @@
-# agenzo-pay
+# agenzo-token-cli
 
 Command-line tool for the Agent Payment API.
 
 ## Installation
 
 ```bash
-npm install -g agenzo-pay
+npm install -g agenzo-token-cli
 ```
 
 **Requirements**: Node.js 18+
@@ -14,19 +14,19 @@ npm install -g agenzo-pay
 
 ```bash
 # 1. Sign in (auto-registers on first use)
-agenzo-pay login --email your@email.com
+agenzo-token-cli login --email your@email.com
 
 # 2. Create a developer
-agenzo-pay developers create --dev-name "My Agent" --dev-email agent@example.com
+agenzo-token-cli developers create --dev-name "My Agent" --dev-email agent@example.com
 
 # 3. Create an API Key
-agenzo-pay keys create --developer-id dev_01KPX... --key-name "Production Key"
+agenzo-token-cli keys create --developer-id dev_01KPX... --key-name "Production Key"
 
-# 4. Add a payment method (card)
-agenzo-pay payment-methods add --api-key ak_xxx --card-email user@example.com
+# 4. Add a payment method (card) → returns payment-method-id (e.g. pm_01KPX...)
+agenzo-token-cli payment-methods add --api-key ak_xxx --card-email user@example.com
 
-# 5. Create a VCN payment token
-agenzo-pay payment-tokens create --type vcn --api-key ak_xxx --payment-method-id pm_01KPX... --member mem_001 --amount 2500
+# 5. Create a VCN payment token (use payment-method-id from step 4)
+agenzo-token-cli payment-tokens create --type vcn --api-key ak_xxx --payment-method-id pm_01KPX... --member mem_001 --amount 500
 ```
 
 ## Commands
