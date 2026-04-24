@@ -9,17 +9,17 @@ export function registerListCommand(
 ): void {
   parent
     .command('list')
-    .description('列出所有已登录的组织')
+    .description('List all signed-in organizations')
     .action(async () => {
       const credentials = await deps.credentialStore.listAll();
       const activeOrg = await deps.configManager.getActiveOrg();
 
       if (credentials.length === 0) {
-        console.log(Formatter.status('info', '暂无已登录的组织'));
+        console.log(Formatter.status('info', 'No signed-in organizations'));
         return;
       }
 
-      const headers = ['', '组织 ID', '组织名称', '邮箱'];
+      const headers = ['', 'Org ID', 'Org Name', 'Email'];
       const rows = credentials.map((cred) => [
         cred.org_id === activeOrg ? '*' : '',
         cred.org_id,

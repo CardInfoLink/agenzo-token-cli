@@ -2,7 +2,6 @@ import { Command } from 'commander';
 import { ApiClient } from '../api/client.js';
 import { PromptEngine } from '../utils/prompt-engine.js';
 import { Formatter } from '../utils/formatter.js';
-import { PaymentToken } from '../types/api.js';
 
 export function registerListCommand(
   parent: Command,
@@ -10,12 +9,12 @@ export function registerListCommand(
 ): void {
   parent
     .command('list')
-    .description('列出支付令牌')
-    .option('--key <api_key>', 'API Key')
-    .option('--type <type>', '按类型过滤')
-    .option('--member <member_id>', '按 member 过滤')
+    .description('List payment tokens')
+    .option('--api-key <api_key>', 'API Key')
+    .option('--type <type>', 'Filter by type')
+    .option('--member <member_id>', 'Filter by member')
     .action(async (options) => {
-      const apiKey = await PromptEngine.resolveInput(options.key, {
+      const apiKey = await PromptEngine.resolveInput(options.apiKey, {
         message: 'API Key:',
       });
 
@@ -23,7 +22,7 @@ export function registerListCommand(
       if (options.type) params.type = options.type;
       if (options.member) params.member_id = options.member;
 
-      const result = await deps.apiClient.get<PaymentToken[]>(
+      const result = await deps.apiClient.get<Record<string, unknown>[]>(
         '/payment-tokens',
         { type: 'api-key', key: apiKey },
         params,
@@ -31,14 +30,14 @@ export function registerListCommand(
 
       if (result.success) {
         if (result.data.length === 0) {
-          console.log(Formatter.status('info', '暂无支付令牌'));
+          console.log(Formatter.status('info', 'No payment tokens found'));
           return;
         }
-        const headers = ['Token ID', '类型', '状态', '摘要'];
+        const headers = ['Token ID', 'Type', 'Status', 'Summary'];
         const rows = result.data.map((t) => [
-          t.id,
-          t.type,
-          getStatus(t),
+          String(t.id ?? ''),
+          String(t.type ?? ''),
+          String(t.status ?? '-'),
           getSummary(t),
         ]);
         console.log(Formatter.table(headers, rows));
@@ -50,20 +49,21 @@ export function registerListCommand(
     });
 }
 
-function getStatus(token: PaymentToken): string {
-  if (token.type === 'vcn' || token.type === 'x402') {
-    return token.status;
+function getSummary(data: Record<string, unknown>): string {
+  const type = String(data.type ?? '');
+
+  if (type === 'vcn') {
+    const vcn = (data.vcn as Record<string, unknown>) ?? {};
+    return `****${vcn.last4 ?? '?'} $${(Number(vcn.spend_limit_cents ?? 0) / 100).toFixed(2)}`;
+  }
+  if (type === 'network_token') {
+    const nt = (data.network_token as Record<string, unknown>) ?? {};
+    return `${nt.payment_brand ?? '-'} ****${nt.last4_no ?? '?'}`;
+  }
+  if (type === 'x402') {
+    const x402 = (data.x402 as Record<string, unknown>) ?? {};
+    const sig = String(x402.signature_value ?? '');
+    return sig ? sig.slice(0, 16) + '...' : '-';
   }
   return '-';
-}
-
-function getSummary(token: PaymentToken): string {
-  switch (token.type) {
-    case 'vcn':
-      return `****${token.last_four} ${token.amount_limit} ${token.currency}`;
-    case 'network_token':
-      return `${token.brand} ${token.token_first_six}...${token.token_last_four}`;
-    case 'x402':
-      return token.signature_value.slice(0, 16) + '...';
-  }
 }

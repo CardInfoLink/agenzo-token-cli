@@ -9,20 +9,20 @@ export function registerSwitchCommand(
 ): void {
   parent
     .command('switch <org_id>')
-    .description('切换活跃组织')
+    .description('Switch active organization')
     .action(async (orgId: string) => {
       const exists = await deps.credentialStore.exists(orgId);
       if (!exists) {
         console.error(
-          Formatter.status('error', `组织 ${orgId} 未在本地登录`),
+          Formatter.status('error', `Organization ${orgId} not signed in locally`),
         );
         console.error(
-          Formatter.status('info', '请先执行 agent-token-admin login 登录该组织'),
+          Formatter.status('info', 'Please run agenzo-token-cli login to sign in to this organization'),
         );
         return;
       }
 
       await deps.configManager.setActiveOrg(orgId);
-      console.log(Formatter.status('success', `已切换到组织 ${orgId}`));
+      console.log(Formatter.status('success', `Switched to organization ${orgId}`));
     });
 }

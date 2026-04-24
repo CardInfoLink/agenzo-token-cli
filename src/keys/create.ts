@@ -18,17 +18,17 @@ export function registerCreateCommand(
 ): void {
   parent
     .command('create')
-    .description('创建 API Key')
-    .option('--developer <developer_id>', '开发者 ID')
-    .option('--name <name>', 'Key 名称')
+    .description('Create an API Key')
+    .option('--developer-id <developer_id>', 'Developer ID (e.g. dev_01KPX...)')
+    .option('--key-name <key_name>', 'Key name (e.g. Production Key)')
     .action(async (options) => {
       const token = await deps.authService.getValidAccessToken();
 
-      const developerId = await PromptEngine.resolveInput(options.developer, {
-        message: '开发者 ID:',
+      const developerId = await PromptEngine.resolveInput(options.developerId, {
+        message: 'Developer ID (e.g. dev_01KPX...):',
       });
-      const name = await PromptEngine.resolveInput(options.name, {
-        message: 'Key 名称:',
+      const name = await PromptEngine.resolveInput(options.keyName, {
+        message: 'Key name (e.g. Production Key):',
       });
 
       const result = await deps.apiClient.post<ApiKey>(
@@ -52,20 +52,19 @@ export function registerCreateCommand(
           });
         }
 
-        console.log(Formatter.status('success', 'API Key 创建成功'));
+        console.log(Formatter.status('success', 'API Key created'));
         console.log(
           Formatter.status('warning', `API Key: ${key.api_key}`),
         );
         console.log(
-          Formatter.status('warning', '请妥善保存，此 Key 仅显示一次'),
+          Formatter.status('warning', 'Save it now — this key is shown only once'),
         );
         console.log(
           Formatter.keyValue([
             ['Key ID', key.id],
-            ['开发者 ID', key.developer_id],
-            ['名称', key.name],
-            ['前缀', key.key_prefix],
-            ['状态', key.status],
+            ['Developer ID', key.developer_id],
+            ['Name', key.name],
+            ['Status', key.status],
           ]),
         );
       } else {

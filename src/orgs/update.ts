@@ -10,9 +10,9 @@ export function registerUpdateCommand(
 ): void {
   parent
     .command('update')
-    .description('更新当前组织信息')
-    .option('--name <name>', '新组织名称')
-    .option('--email <email>', '新邮箱')
+    .description('Update current organization')
+    .option('--name <name>', 'New organization name')
+    .option('--email <email>', 'New email')
     .action(async (options) => {
       const token = await deps.authService.getValidAccessToken();
 
@@ -27,18 +27,18 @@ export function registerUpdateCommand(
       );
 
       if (result.success) {
-        console.log(Formatter.status('success', '组织信息已更新'));
+        console.log(Formatter.status('success', 'Organization updated'));
         console.log(
           Formatter.keyValue([
-            ['组织 ID', result.data.id],
-            ['名称', result.data.name],
-            ['邮箱', result.data.email],
-            ['状态', result.data.status],
+            ['Org ID', result.data.id],
+            ['Name', result.data.name],
+            ['Email', result.data.email],
+            ['Status', result.data.status],
           ]),
         );
         if (options.email) {
           console.log(
-            Formatter.status('info', '邮箱变更需要到新邮箱完成验证'),
+            Formatter.status('info', 'Email change requires verification at the new address'),
           );
         }
       } else {

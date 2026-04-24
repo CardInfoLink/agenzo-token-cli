@@ -2,7 +2,6 @@ import { Command } from 'commander';
 import { ApiClient } from '../api/client.js';
 import { PromptEngine } from '../utils/prompt-engine.js';
 import { Formatter } from '../utils/formatter.js';
-import { PaymentToken } from '../types/api.js';
 
 export function registerGetCommand(
   parent: Command,
@@ -10,14 +9,14 @@ export function registerGetCommand(
 ): void {
   parent
     .command('get <payment_token_id>')
-    .description('查看支付令牌详情')
-    .option('--key <api_key>', 'API Key')
+    .description('View payment token details')
+    .option('--api-key <api_key>', 'API Key')
     .action(async (paymentTokenId: string, options) => {
-      const apiKey = await PromptEngine.resolveInput(options.key, {
+      const apiKey = await PromptEngine.resolveInput(options.apiKey, {
         message: 'API Key:',
       });
 
-      const result = await deps.apiClient.get<PaymentToken>(
+      const result = await deps.apiClient.get<Record<string, unknown>>(
         `/payment-tokens/${paymentTokenId}`,
         { type: 'api-key', key: apiKey },
       );
@@ -32,47 +31,57 @@ export function registerGetCommand(
     });
 }
 
-function formatPaymentToken(token: PaymentToken): void {
-  switch (token.type) {
-    case 'vcn':
-      console.log(
-        Formatter.keyValue([
-          ['Token ID', token.id],
-          ['类型', 'VCN'],
-          ['卡号', token.card_number],
-          ['有效期', token.expiry],
-          ['CVC', token.cvc],
-          ['后四位', token.last_four],
-          ['限额', String(token.amount_limit)],
-          ['货币', token.currency],
-          ['状态', token.status],
-        ]),
-      );
-      break;
-    case 'network_token':
-      console.log(
-        Formatter.keyValue([
-          ['Token ID', token.id],
-          ['类型', 'Network Token'],
-          ['品牌', token.brand],
-          ['前六位', token.token_first_six],
-          ['后四位', token.token_last_four],
-          ['ECI', token.eci],
-          ['Cryptogram', token.cryptogram],
-          ['有效期', token.expiry],
-          ['Value', token.value],
-        ]),
-      );
-      break;
-    case 'x402':
-      console.log(
-        Formatter.keyValue([
-          ['Token ID', token.id],
-          ['类型', 'X402'],
-          ['状态', token.status],
-          ['Signature Value', token.signature_value],
-        ]),
-      );
-      break;
+function formatPaymentToken(data: Record<string, unknown>): void {
+  const type = String(data.type ?? '');
+  const id = String(data.id ?? '');
+  const status = String(data.status ?? '');
+
+  if (type === 'vcn') {
+    const vcn = (data.vcn as Record<string, unknown>) ?? {};
+    console.log(
+      Formatter.keyValue([
+        ['Token ID', id],
+        ['Type', 'VCN'],
+        ['Card Number', String(vcn.pan ?? '-')],
+        ['Expiry', String(vcn.expiry ?? '-')],
+        ['CVC', String(vcn.cvv ?? '-')],
+        ['Last 4', String(vcn.last4 ?? '-')],
+        ['Limit', `$${(Number(vcn.spend_limit_cents ?? 0) / 100).toFixed(2)}`],
+        ['Balance', `$${(Number(vcn.balance_cents ?? 0) / 100).toFixed(2)}`],
+        ['Currency', String(vcn.currency ?? 'USD')],
+        ['Status', String(vcn.status ?? status)],
+      ]),
+    );
+  } else if (type === 'network_token') {
+    const nt = (data.network_token as Record<string, unknown>) ?? {};
+    console.log(
+      Formatter.keyValue([
+        ['Token ID', id],
+        ['Type', 'Network Token'],
+        ['Brand', String(nt.payment_brand ?? nt.brand ?? '-')],
+        ['Token Card', String(nt.last4_no ?? '-')],
+        ['ECI', String(nt.eci ?? '-')],
+        ['Cryptogram', String(nt.token_cryptogram ?? '-')],
+        ['Expiry', String(nt.expiry_date ?? '-')],
+        ['Value', String(nt.value ?? '-')],
+        ['Status', status],
+      ]),
+    );
+  } else if (type === 'x402') {
+    const x402 = (data.x402 as Record<string, unknown>) ?? {};
+    console.log(
+      Formatter.keyValue([
+        ['Token ID', id],
+        ['Type', 'X402'],
+        ['Status', status],
+        ['Signature Value', String(x402.signature_value ?? '-')],
+      ]),
+    );
+  } else {
+    console.log(Formatter.keyValue([
+      ['Token ID', id],
+      ['Type', type],
+      ['Status', status],
+    ]));
   }
 }

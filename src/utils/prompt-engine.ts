@@ -49,17 +49,17 @@ export class PromptEngine {
   ): Promise<Record<string, string>> {
     const params: Record<string, string> = { type };
 
-    const email = await PromptEngine.resolveInput(flags.email, {
-      message: '邮箱:',
+    const email = await PromptEngine.resolveInput(flags.cardEmail ?? flags.email, {
+      message: 'Email (for 3DS verification):',
     });
     params.email = email;
 
     if (type === 'card') {
       params.card_number = await PromptEngine.resolveInput(flags.cardNumber, {
-        message: '卡号:',
+        message: 'Card number:',
       });
       params.expiry_date = await PromptEngine.resolveInput(flags.expiry, {
-        message: '有效期 (MMYY):',
+        message: 'Expiry (MMYY):',
       });
       // CVV is always collected interactively
       params.cvv = await PromptEngine.collectCvv();

@@ -4,20 +4,23 @@ import { PromptEngine } from '../utils/prompt-engine.js';
 import { Formatter } from '../utils/formatter.js';
 import { PaymentMethod } from '../types/api.js';
 
+const POLL_INTERVAL_MS = 3000;
+const POLL_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
+
 export function registerAddCommand(
   parent: Command,
   deps: { apiClient: ApiClient },
 ): void {
   parent
     .command('add')
-    .description('添加支付方式')
-    .option('--key <api_key>', 'API Key')
-    .option('--type <type>', '支付类型', 'card')
-    .option('--email <email>', '邮箱')
-    .option('--card-number <card_number>', '卡号')
-    .option('--expiry <expiry>', '有效期 (MMYY)')
+    .description('Add a payment method')
+    .option('--api-key <api_key>', 'API Key')
+    .option('--type <type>', 'Payment type', 'card')
+    .option('--card-email <email>', 'Email for 3DS verification')
+    .option('--card-number <card_number>', 'Card number')
+    .option('--expiry <expiry>', 'Expiry (MMYY)')
     .action(async (options) => {
-      const apiKey = await PromptEngine.resolveInput(options.key, {
+      const apiKey = await PromptEngine.resolveInput(options.apiKey, {
         message: 'API Key:',
       });
 
@@ -32,29 +35,79 @@ export function registerAddCommand(
         params,
       );
 
-      if (result.success) {
-        const pm = result.data;
-        console.log(Formatter.status('success', '支付方式添加成功'));
-        const entries: [string, string][] = [
-          ['支付方式 ID', pm.id],
-          ['类型', pm.type],
-          ['状态', pm.status],
-        ];
-        if (pm.brand) entries.push(['品牌', pm.brand]);
-        if (pm.last_four) entries.push(['后四位', pm.last_four]);
-        if (pm.magic_link_token) entries.push(['Magic Link Token', pm.magic_link_token]);
-        if (pm.expires_at) entries.push(['过期时间', pm.expires_at]);
-        console.log(Formatter.keyValue(entries));
-
-        if (options.type === 'card') {
-          console.log(
-            Formatter.status('info', '请到邮箱完成 3DS 验证以激活支付方式'),
-          );
-        }
-      } else {
+      if (!result.success) {
         console.error(
           Formatter.status('error', `[${result.errorCode}] ${result.errorMessage}`),
         );
+        return;
+      }
+
+      const pm = result.data;
+      console.log(Formatter.status('success', 'Payment method created'));
+      console.log(Formatter.keyValue([
+        ['PM ID', pm.id],
+        ['Type', pm.type],
+        ['Status', pm.status],
+      ]));
+
+      if (options.type === 'card' && pm.status === 'PENDING') {
+        console.log(
+          Formatter.status('info', 'Complete 3DS verification via email to activate'),
+        );
+        console.log(
+          Formatter.status('loading', 'Waiting for 3DS verification...'),
+        );
+
+        const finalPm = await pollVerificationStatus(deps.apiClient, apiKey, pm.id);
+
+        if (finalPm.status === 'ACTIVE') {
+          console.log(Formatter.status('success', 'Payment method activated'));
+          const entries: [string, string][] = [
+            ['PM ID', finalPm.id],
+            ['Brand', finalPm.brand ?? '-'],
+            ['First 6', finalPm.first6 ?? '-'],
+            ['Last 4', finalPm.last4 ?? '-'],
+            ['Status', finalPm.status],
+          ];
+          console.log(Formatter.keyValue(entries));
+        } else if (finalPm.status === 'FAILED') {
+          console.error(Formatter.status('error', '3DS verification failed'));
+        } else {
+          console.error(
+            Formatter.status('error', 'Verification timed out (15 min). Check status with:'),
+          );
+          console.log(`  agenzo-token-cli payment-methods get ${pm.id} --api-key <your_key>`);
+        }
       }
     });
+}
+
+async function pollVerificationStatus(
+  apiClient: ApiClient,
+  apiKey: string,
+  pmId: string,
+): Promise<PaymentMethod> {
+  const startTime = Date.now();
+
+  while (Date.now() - startTime < POLL_TIMEOUT_MS) {
+    const result = await apiClient.get<PaymentMethod>(
+      '/payment-methods/verification/status',
+      { type: 'api-key', key: apiKey },
+      { payment_method_id: pmId },
+    );
+
+    if (result.success) {
+      const status = result.data.status;
+      if (status === 'ACTIVE' || status === 'FAILED') {
+        return result.data;
+      }
+      // Still PENDING — show loading dot
+      process.stdout.write('.');
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+  }
+
+  // Timeout — return last known state
+  return { id: pmId, status: 'PENDING' } as PaymentMethod;
 }

@@ -10,7 +10,7 @@ export function registerDisableCommand(
 ): void {
   parent
     .command('disable <key_id>')
-    .description('禁用 API Key')
+    .description('Disable API Key')
     .action(async (keyId: string) => {
       const token = await deps.authService.getValidAccessToken();
 
@@ -20,10 +20,10 @@ export function registerDisableCommand(
       );
 
       if (result.success) {
-        console.log(Formatter.status('success', `API Key ${keyId} 已禁用`));
+        console.log(Formatter.status('success', `API Key ${keyId} disabled`));
         console.log(
           Formatter.keyValue([
-            ['状态', result.data.status],
+            ['Status', result.data.status],
           ]),
         );
       } else {

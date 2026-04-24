@@ -1,16 +1,15 @@
 {
-  "name": "agent-token-admin",
+  "name": "agenzo-token-cli",
   "version": "0.1.0",
   "description": "CLI tool for the Agent Payment API",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "agent-token-admin": "dist/index.js"
+    "agenzo-token-cli": "dist/index.js"
   },
   "files": [
     "dist",
     "README.md",
-    "README_EN.md",
     "LICENSE"
   ],
   "scripts": {

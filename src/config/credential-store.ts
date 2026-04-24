@@ -7,7 +7,7 @@ export class CredentialStore {
   private readonly basePath: string;
 
   constructor(basePath?: string) {
-    this.basePath = basePath ?? join(homedir(), '.agent-token-admin', 'credentials');
+    this.basePath = basePath ?? join(homedir(), '.agenzo-token-cli', 'credentials');
   }
 
   private filePath(orgId: string): string {

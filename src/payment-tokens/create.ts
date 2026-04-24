@@ -3,7 +3,6 @@ import { randomUUID } from 'node:crypto';
 import { ApiClient } from '../api/client.js';
 import { PromptEngine } from '../utils/prompt-engine.js';
 import { Formatter } from '../utils/formatter.js';
-import { PaymentToken } from '../types/api.js';
 
 export function registerCreateCommand(
   parent: Command,
@@ -11,25 +10,25 @@ export function registerCreateCommand(
 ): void {
   parent
     .command('create')
-    .description('创建支付令牌')
-    .option('--key <api_key>', 'API Key')
-    .option('--type <type>', '令牌类型 (vcn, network-token, x402)', 'vcn')
-    .option('--payment-method <pm_id>', '支付方式 ID')
+    .description('Create a payment token')
+    .option('--api-key <api_key>', 'API Key')
+    .option('--type <type>', 'Token type (vcn, network-token, x402)', 'vcn')
+    .option('--payment-method-id <pm_id>', 'Payment method ID (e.g. pm_01KPX...)')
     .option('--member <member_id>', 'Member ID')
-    .option('--amount <amount>', '金额（美分，1-50000）')
-    .option('--currency <currency>', '货币（默认 USD）')
-    .option('--pay-to <address>', '收款地址（X402）')
-    .option('--nonce <nonce>', 'Nonce（X402）')
-    .option('--network <network>', '网络（X402）')
-    .option('--deadline <deadline>', 'Deadline Unix 时间戳（X402）')
-    .option('--external-tx-id <id>', '外部交易 ID')
+    .option('--amount <amount>', 'Amount in USD (0.01-500.00)')
+    .option('--currency <currency>', 'Currency (default: USD)')
+    .option('--pay-to <address>', 'Pay-to address (X402)')
+    .option('--nonce <nonce>', 'Nonce (X402)')
+    .option('--network <network>', 'Network (X402)')
+    .option('--deadline <deadline>', 'Deadline Unix timestamp (X402)')
+    .option('--external-tx-id <id>', 'External transaction ID (auto-generated if omitted)')
     .action(async (options) => {
-      const apiKey = await PromptEngine.resolveInput(options.key, {
+      const apiKey = await PromptEngine.resolveInput(options.apiKey, {
         message: 'API Key:',
       });
 
-      const paymentMethodId = await PromptEngine.resolveInput(options.paymentMethod, {
-        message: '支付方式 ID:',
+      const paymentMethodId = await PromptEngine.resolveInput(options.paymentMethodId, {
+        message: 'Payment method ID:',
       });
 
       const memberId = await PromptEngine.resolveInput(options.member, {
@@ -44,9 +43,7 @@ export function registerCreateCommand(
       };
       const apiType = typeMap[options.type] ?? options.type;
 
-      const externalTxId = await PromptEngine.resolveInput(options.externalTxId, {
-        message: '外部交易 ID:',
-      });
+      const externalTxId = options.externalTxId ?? randomUUID();
 
       const body: Record<string, unknown> = {
         type: apiType,
@@ -56,28 +53,33 @@ export function registerCreateCommand(
       };
 
       if (apiType === 'vcn') {
-        const amount = await PromptEngine.resolveInput(options.amount, {
-          message: '金额（美分，1-50000）:',
+        const amountStr = await PromptEngine.resolveInput(options.amount, {
+          message: 'Amount in USD (0.01-500.00):',
         });
-        body.amount = Number(amount);
+        const amountUsd = parseFloat(amountStr);
+        if (isNaN(amountUsd) || amountUsd < 0.01 || amountUsd > 500) {
+          console.error(Formatter.status('error', 'Amount must be between 0.01 and 500.00 USD'));
+          return;
+        }
+        body.amount = Math.round(amountUsd * 100); // Convert USD to cents for API
         if (options.currency) {
           body.currency = options.currency;
         }
       } else if (apiType === 'x402') {
         body.pay_to = await PromptEngine.resolveInput(options.payTo, {
-          message: '收款地址:',
+          message: 'Pay-to address:',
         });
         body.amount = await PromptEngine.resolveInput(options.amount, {
-          message: '金额（USDC 最小单位）:',
+          message: 'Amount (USDC smallest unit):',
         });
         body.nonce = await PromptEngine.resolveInput(options.nonce, {
           message: 'Nonce:',
         });
         body.network = await PromptEngine.resolveInput(options.network, {
-          message: '网络:',
+          message: 'Network:',
         });
         const deadline = await PromptEngine.resolveInput(options.deadline, {
-          message: 'Deadline（Unix 时间戳）:',
+          message: 'Deadline (Unix timestamp):',
         });
         body.deadline = Number(deadline);
       }
@@ -91,8 +93,8 @@ export function registerCreateCommand(
       );
 
       if (result.success) {
-        console.log(Formatter.status('success', '支付令牌创建成功'));
-        formatPaymentToken(result.data);
+        console.log(Formatter.status('success', 'Payment token created'));
+        formatPaymentToken(result.data as unknown as Record<string, unknown>);
       } else {
         console.error(
           Formatter.status('error', `[${result.errorCode}] ${result.errorMessage}`),
@@ -101,50 +103,60 @@ export function registerCreateCommand(
     });
 }
 
-function formatPaymentToken(token: PaymentToken): void {
-  switch (token.type) {
-    case 'vcn':
-      console.log(
-        Formatter.keyValue([
-          ['Token ID', token.id],
-          ['类型', 'VCN'],
-          ['卡号', token.card_number],
-          ['有效期', token.expiry],
-          ['CVC', token.cvc],
-          ['后四位', token.last_four],
-          ['限额', String(token.amount_limit)],
-          ['货币', token.currency],
-          ['状态', token.status],
-        ]),
-      );
-      break;
-    case 'network_token':
-      console.log(
-        Formatter.keyValue([
-          ['Token ID', token.id],
-          ['类型', 'Network Token'],
-          ['品牌', token.brand],
-          ['前六位', token.token_first_six],
-          ['后四位', token.token_last_four],
-          ['ECI', token.eci],
-          ['Cryptogram', token.cryptogram],
-          ['有效期', token.expiry],
-          ['Value', token.value],
-        ]),
-      );
-      break;
-    case 'x402':
-      console.log(
-        Formatter.keyValue([
-          ['Token ID', token.id],
-          ['类型', 'X402'],
-          ['状态', token.status],
-          ['Signature Value', token.signature_value],
-        ]),
-      );
-      console.log(
-        Formatter.status('info', '请将 Signature Value 用于 X-PAYMENT 请求头'),
-      );
-      break;
+function formatPaymentToken(data: Record<string, unknown>): void {
+  const type = String(data.type ?? '');
+  const id = String(data.id ?? '');
+  const status = String(data.status ?? '');
+
+  if (type === 'vcn') {
+    const vcn = (data.vcn as Record<string, unknown>) ?? {};
+    console.log(
+      Formatter.keyValue([
+        ['Token ID', id],
+        ['Type', 'VCN'],
+        ['Card Number', String(vcn.pan ?? '-')],
+        ['Expiry', String(vcn.expiry ?? '-')],
+        ['CVC', String(vcn.cvv ?? '-')],
+        ['Last 4', String(vcn.last4 ?? '-')],
+        ['Limit', `$${(Number(vcn.spend_limit_cents ?? 0) / 100).toFixed(2)}`],
+        ['Balance', `$${(Number(vcn.balance_cents ?? 0) / 100).toFixed(2)}`],
+        ['Currency', String(vcn.currency ?? 'USD')],
+        ['Status', String(vcn.status ?? status)],
+      ]),
+    );
+  } else if (type === 'network_token') {
+    const nt = (data.network_token as Record<string, unknown>) ?? {};
+    console.log(
+      Formatter.keyValue([
+        ['Token ID', id],
+        ['Type', 'Network Token'],
+        ['Brand', String(nt.payment_brand ?? nt.brand ?? '-')],
+        ['Token Card', String(nt.last4_no ?? '-')],
+        ['ECI', String(nt.eci ?? '-')],
+        ['Cryptogram', String(nt.token_cryptogram ?? '-')],
+        ['Expiry', String(nt.expiry_date ?? '-')],
+        ['Value', String(nt.value ?? '-')],
+        ['Status', status],
+      ]),
+    );
+  } else if (type === 'x402') {
+    const x402 = (data.x402 as Record<string, unknown>) ?? {};
+    console.log(
+      Formatter.keyValue([
+        ['Token ID', id],
+        ['Type', 'X402'],
+        ['Status', status],
+        ['Signature Value', String(x402.signature_value ?? '-')],
+      ]),
+    );
+    console.log(
+      Formatter.status('info', 'Use the Signature Value in the X-PAYMENT request header'),
+    );
+  } else {
+    console.log(Formatter.keyValue([
+      ['Token ID', id],
+      ['Type', type],
+      ['Status', status],
+    ]));
   }
 }

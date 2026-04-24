@@ -64,31 +64,31 @@ async function main() {
   // Create program
   const program = new Command();
   program
-    .name('agent-token-admin')
+    .name('agenzo-token-cli')
     .version('0.1.0')
-    .description('Agent Payment API 命令行工具')
-    .option('--verbose', '显示详细日志');
+    .description('Agent Payment API CLI')
+    .option('--verbose', 'Show verbose logs');
 
   // Register top-level auth commands
   registerLoginCommand(program, { authService });
   registerLogoutCommand(program, { authService });
 
   // Orgs command group
-  const orgsCmd = program.command('orgs').description('组织管理');
+  const orgsCmd = program.command('orgs').description('Organization management');
   registerMeCommand(orgsCmd, controlPlaneDeps);
   registerOrgUpdateCommand(orgsCmd, controlPlaneDeps);
   registerOrgListCommand(orgsCmd, orgsDeps);
   registerSwitchCommand(orgsCmd, orgsDeps);
 
   // Developers command group
-  const devsCmd = program.command('developers').description('开发者管理');
+  const devsCmd = program.command('developers').description('Developer management');
   registerDevCreateCommand(devsCmd, controlPlaneDeps);
   registerDevListCommand(devsCmd, controlPlaneDeps);
   registerDevGetCommand(devsCmd, controlPlaneDeps);
   registerDevUpdateCommand(devsCmd, controlPlaneDeps);
 
   // Keys command group
-  const keysCmd = program.command('keys').description('API Key 管理');
+  const keysCmd = program.command('keys').description('API Key management');
   registerKeyCreateCommand(keysCmd, keysDeps);
   registerKeyListCommand(keysCmd, controlPlaneDeps);
   registerKeyGetCommand(keysCmd, controlPlaneDeps);
@@ -96,14 +96,14 @@ async function main() {
   registerKeyDisableCommand(keysCmd, controlPlaneDeps);
 
   // Payment methods command group
-  const pmCmd = program.command('payment-methods').description('支付方式管理');
+  const pmCmd = program.command('payment-methods').description('Payment method management');
   registerAddCommand(pmCmd, runtimePlaneDeps);
   registerPmListCommand(pmCmd, runtimePlaneDeps);
   registerPmGetCommand(pmCmd, runtimePlaneDeps);
   registerPmDisableCommand(pmCmd, runtimePlaneDeps);
 
   // Payment tokens command group
-  const ptCmd = program.command('payment-tokens').description('支付令牌管理');
+  const ptCmd = program.command('payment-tokens').description('Payment token management');
   registerPtCreateCommand(ptCmd, runtimePlaneDeps);
   registerPtListCommand(ptCmd, runtimePlaneDeps);
   registerPtGetCommand(ptCmd, runtimePlaneDeps);
@@ -121,9 +121,9 @@ main().catch((error) => {
       console.error(Formatter.status('info', error.suggestion));
     }
   } else {
-    console.error(Formatter.status('error', '发生未预期的错误'));
+    console.error(Formatter.status('error', 'An unexpected error occurred'));
     console.error(
-      Formatter.status('info', '请使用 --verbose 标志重试以获取详细日志'),
+      Formatter.status('info', 'Retry with --verbose flag for detailed logs'),
     );
     if (process.argv.includes('--verbose')) {
       console.error(error);

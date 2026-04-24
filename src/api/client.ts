@@ -30,7 +30,7 @@ export class ApiClient {
 
   constructor(config: ApiClientConfig) {
     this.baseUrl = config.baseUrl.replace(/\/+$/, '');
-    this.timeout = config.timeout ?? 30000;
+    this.timeout = config.timeout ?? 60000;
   }
 
   private buildHeaders(auth: AuthMode): Record<string, string> {

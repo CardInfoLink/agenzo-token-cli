@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================
-# agent-token-admin E2E 测试脚本
+# agenzo-token-cli E2E 测试脚本
 #
 # 完整流程：注册 → 开发者 → API Key → 绑卡 → Webhook → VCN
 #
@@ -15,7 +15,7 @@ EMAIL="test_$(date +%s)@example.com"
 ORG_NAME="TestOrg_$(date +%s)"
 
 echo "=========================================="
-echo "  agent-token-admin E2E 测试"
+echo "  agenzo-token-cli E2E 测试"
 echo "=========================================="
 echo ""
 

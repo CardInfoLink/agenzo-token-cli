@@ -10,9 +10,9 @@ export function registerUpdateCommand(
 ): void {
   parent
     .command('update <developer_id>')
-    .description('更新开发者信息')
-    .option('--name <name>', '新名称')
-    .option('--email <email>', '新邮箱')
+    .description('Update developer info')
+    .option('--name <name>', 'New name')
+    .option('--email <email>', 'New email')
     .action(async (developerId: string, options) => {
       const token = await deps.authService.getValidAccessToken();
 
@@ -27,13 +27,13 @@ export function registerUpdateCommand(
       );
 
       if (result.success) {
-        console.log(Formatter.status('success', '开发者信息已更新'));
+        console.log(Formatter.status('success', 'Developer updated'));
         console.log(
           Formatter.keyValue([
             ['ID', result.data.id],
-            ['名称', result.data.name],
-            ['邮箱', result.data.email],
-            ['状态', result.data.status],
+            ['Name', result.data.name],
+            ['Email', result.data.email],
+            ['Status', result.data.status],
           ]),
         );
       } else {

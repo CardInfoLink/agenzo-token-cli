@@ -10,7 +10,7 @@ export function registerGetCommand(
 ): void {
   parent
     .command('get <key_id>')
-    .description('查看 API Key 详情')
+    .description('View API Key details')
     .action(async (keyId: string) => {
       const token = await deps.authService.getValidAccessToken();
 
@@ -24,12 +24,11 @@ export function registerGetCommand(
         console.log(
           Formatter.keyValue([
             ['Key ID', k.id],
-            ['开发者 ID', k.developer_id],
-            ['名称', k.name],
-            ['前缀', k.key_prefix],
-            ['状态', k.status],
-            ['最后使用', k.last_used_at ?? '从未使用'],
-            ['创建时间', k.created_at],
+            ['Developer ID', k.developer_id],
+            ['Name', k.name],
+            ['Status', k.status],
+            ['Last Used', k.last_used_at ?? 'Never'],
+            ['Created', k.created_at],
           ]),
         );
       } else {

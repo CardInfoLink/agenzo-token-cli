@@ -10,10 +10,10 @@ export function registerGetCommand(
 ): void {
   parent
     .command('get <pm_id>')
-    .description('查看支付方式详情')
-    .option('--key <api_key>', 'API Key')
+    .description('View payment method details')
+    .option('--api-key <api_key>', 'API Key')
     .action(async (pmId: string, options) => {
-      const apiKey = await PromptEngine.resolveInput(options.key, {
+      const apiKey = await PromptEngine.resolveInput(options.apiKey, {
         message: 'API Key:',
       });
 
@@ -25,14 +25,14 @@ export function registerGetCommand(
       if (result.success) {
         const pm = result.data;
         const entries: [string, string][] = [
-          ['支付方式 ID', pm.id],
-          ['类型', pm.type],
-          ['状态', pm.status],
+          ['PM ID', pm.id],
+          ['Type', pm.type],
+          ['Status', pm.status],
         ];
-        if (pm.brand) entries.push(['品牌', pm.brand]);
-        if (pm.first_six) entries.push(['前六位', pm.first_six]);
-        if (pm.last_four) entries.push(['后四位', pm.last_four]);
-        entries.push(['创建时间', pm.created_at]);
+        if (pm.brand) entries.push(['Brand', pm.brand]);
+        if (pm.first6) entries.push(['First 6', pm.first6]);
+        if (pm.last4) entries.push(['Last 4', pm.last4]);
+        entries.push(['Created', pm.created_at]);
         console.log(Formatter.keyValue(entries));
       } else {
         console.error(

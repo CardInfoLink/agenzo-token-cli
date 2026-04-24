@@ -6,7 +6,7 @@ import { ConfigError } from '../utils/errors.js';
 
 const DEFAULT_CONFIG: AppConfig = {
   active_org: null,
-  api_base_url: 'http://localhost:8000/api/v3/agent-pay',
+  api_base_url: 'https://agenzo-token.everonet.com/api/v3/agent-pay',
 };
 
 export class ConfigManager {
@@ -14,7 +14,7 @@ export class ConfigManager {
   private readonly configPath: string;
 
   constructor(basePath?: string) {
-    this.basePath = basePath ?? join(homedir(), '.agent-token-admin');
+    this.basePath = basePath ?? join(homedir(), '.agenzo-token-cli');
     this.configPath = join(this.basePath, 'config.json');
   }
 
@@ -30,7 +30,7 @@ export class ConfigManager {
         return JSON.parse(content) as AppConfig;
       } catch {
         throw new ConfigError(
-          `配置文件格式错误: ${this.configPath}`,
+          `Invalid config file: ${this.configPath}`,
           this.configPath,
         );
       }

@@ -10,7 +10,7 @@ export function registerGetCommand(
 ): void {
   parent
     .command('get <developer_id>')
-    .description('查看开发者详情')
+    .description('View developer details')
     .action(async (developerId: string) => {
       const token = await deps.authService.getValidAccessToken();
 
@@ -23,11 +23,11 @@ export function registerGetCommand(
         console.log(
           Formatter.keyValue([
             ['ID', result.data.id],
-            ['名称', result.data.name],
-            ['邮箱', result.data.email],
-            ['状态', result.data.status],
-            ['创建时间', result.data.created_at],
-            ['更新时间', result.data.updated_at],
+            ['Name', result.data.name],
+            ['Email', result.data.email],
+            ['Status', result.data.status],
+            ['Created', result.data.created_at],
+            ['Updated', result.data.updated_at],
           ]),
         );
       } else {

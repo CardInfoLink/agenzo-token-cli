@@ -10,10 +10,10 @@ export function registerDisableCommand(
 ): void {
   parent
     .command('disable <pm_id>')
-    .description('禁用支付方式')
-    .option('--key <api_key>', 'API Key')
+    .description('Disable payment method')
+    .option('--api-key <api_key>', 'API Key')
     .action(async (pmId: string, options) => {
-      const apiKey = await PromptEngine.resolveInput(options.key, {
+      const apiKey = await PromptEngine.resolveInput(options.apiKey, {
         message: 'API Key:',
       });
 
@@ -23,11 +23,11 @@ export function registerDisableCommand(
       );
 
       if (result.success) {
-        console.log(Formatter.status('success', `支付方式 ${pmId} 已禁用`));
+        console.log(Formatter.status('success', `Payment method ${pmId} disabled`));
         console.log(
           Formatter.keyValue([
-            ['状态', result.data.status],
-            ['级联撤销令牌数', String(result.data.revoked_tokens_count ?? 0)],
+            ['Status', result.data.status],
+            ['Revoked tokens', String(result.data.revoked_tokens_count ?? 0)],
           ]),
         );
       } else {

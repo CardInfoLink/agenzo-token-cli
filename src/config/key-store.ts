@@ -7,7 +7,7 @@ export class KeyStore {
   private readonly filePath: string;
 
   constructor(filePath?: string) {
-    this.filePath = filePath ?? join(homedir(), '.agent-token-admin', 'keys.json');
+    this.filePath = filePath ?? join(homedir(), '.agenzo-token-cli', 'keys.json');
   }
 
   private async loadData(): Promise<KeyStoreData> {

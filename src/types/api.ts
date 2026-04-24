@@ -80,8 +80,8 @@ export interface PaymentMethod {
   id: string;
   type: string;
   brand?: string;
-  first_six?: string;
-  last_four?: string;
+  first6?: string;
+  last4?: string;
   status: string;
   magic_link_token?: string;
   expires_at?: string;

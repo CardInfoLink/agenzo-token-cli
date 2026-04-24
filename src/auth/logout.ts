@@ -8,9 +8,9 @@ export function registerLogoutCommand(
 ): void {
   program
     .command('logout')
-    .description('登出当前组织')
+    .description('Sign out of current organization')
     .action(async () => {
       await deps.authService.logout();
-      console.log(Formatter.status('success', '已登出'));
+      console.log(Formatter.status('success', 'Signed out'));
     });
 }
