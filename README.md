@@ -51,10 +51,6 @@ agenzo-token-cli payment-tokens create --type x402 --api-key ak_xxx --payment-me
 - **Control Plane** (`orgs`, `developers`, `keys`): Bearer Token, obtained via `login`
 - **Runtime Plane** (`payment-methods`, `payment-tokens`): API Key, via `--key` flag
 
-## Documentation
-
-- [Full Command Reference & Samples](./AGENT_CLI.md)
-
 ## Project Structure
 
 ```
