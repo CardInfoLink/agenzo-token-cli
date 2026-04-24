@@ -11,13 +11,13 @@ export function registerListCommand(
 ): void {
   parent
     .command('list')
-    .description('列出 API Key')
-    .option('--developer <developer_id>', '开发者 ID')
+    .description('List API Keys')
+    .option('--developer-id <developer_id>', 'Developer ID (e.g. dev_01KPX...)')
     .action(async (options) => {
       const token = await deps.authService.getValidAccessToken();
 
-      const developerId = await PromptEngine.resolveInput(options.developer, {
-        message: '开发者 ID:',
+      const developerId = await PromptEngine.resolveInput(options.developerId, {
+        message: 'Developer ID (e.g. dev_01KPX...):',
       });
 
       const result = await deps.apiClient.get<ApiKey[]>(
@@ -28,17 +28,17 @@ export function registerListCommand(
 
       if (result.success) {
         if (result.data.length === 0) {
-          console.log(Formatter.status('info', '暂无 API Key'));
+          console.log(Formatter.status('info', 'No API Keys found'));
           return;
         }
-        const headers = ['ID', '开发者', '名称', '前缀', '状态', '最后使用'];
+        const headers = ['ID', 'Developer', 'Name', 'Prefix', 'Status', 'Last Used'];
         const rows = result.data.map((k) => [
           k.id,
           k.developer_id,
           k.name,
           k.key_prefix,
           k.status,
-          k.last_used_at ?? '从未使用',
+          k.last_used_at ?? 'Never',
         ]);
         console.log(Formatter.table(headers, rows));
       } else {

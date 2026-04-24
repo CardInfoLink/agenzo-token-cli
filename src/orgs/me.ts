@@ -10,7 +10,7 @@ export function registerMeCommand(
 ): void {
   parent
     .command('me')
-    .description('查看当前组织信息')
+    .description('View current organization')
     .action(async () => {
       const token = await deps.authService.getValidAccessToken();
       const result = await deps.apiClient.get<Organization>(
@@ -21,12 +21,12 @@ export function registerMeCommand(
       if (result.success) {
         console.log(
           Formatter.keyValue([
-            ['组织 ID', result.data.id],
-            ['名称', result.data.name],
-            ['邮箱', result.data.email],
-            ['状态', result.data.status],
-            ['创建时间', result.data.created_at],
-            ['更新时间', result.data.updated_at],
+            ['Org ID', result.data.id],
+            ['Name', result.data.name],
+            ['Email', result.data.email],
+            ['Status', result.data.status],
+            ['Created', result.data.created_at],
+            ['Updated', result.data.updated_at],
           ]),
         );
       } else {

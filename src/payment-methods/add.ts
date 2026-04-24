@@ -10,14 +10,14 @@ export function registerAddCommand(
 ): void {
   parent
     .command('add')
-    .description('添加支付方式')
-    .option('--key <api_key>', 'API Key')
-    .option('--type <type>', '支付类型', 'card')
-    .option('--email <email>', '邮箱')
-    .option('--card-number <card_number>', '卡号')
-    .option('--expiry <expiry>', '有效期 (MMYY)')
+    .description('Add a payment method')
+    .option('--api-key <api_key>', 'API Key')
+    .option('--type <type>', 'Payment type', 'card')
+    .option('--card-email <email>', 'Email for 3DS verification')
+    .option('--card-number <card_number>', 'Card number')
+    .option('--expiry <expiry>', 'Expiry (MMYY)')
     .action(async (options) => {
-      const apiKey = await PromptEngine.resolveInput(options.key, {
+      const apiKey = await PromptEngine.resolveInput(options.apiKey, {
         message: 'API Key:',
       });
 
@@ -34,21 +34,21 @@ export function registerAddCommand(
 
       if (result.success) {
         const pm = result.data;
-        console.log(Formatter.status('success', '支付方式添加成功'));
+        console.log(Formatter.status('success', 'Payment method added'));
         const entries: [string, string][] = [
-          ['支付方式 ID', pm.id],
-          ['类型', pm.type],
-          ['状态', pm.status],
+          ['PM ID', pm.id],
+          ['Type', pm.type],
+          ['Status', pm.status],
         ];
-        if (pm.brand) entries.push(['品牌', pm.brand]);
-        if (pm.last_four) entries.push(['后四位', pm.last_four]);
+        if (pm.brand) entries.push(['Brand', pm.brand]);
+        if (pm.last_four) entries.push(['Last 4', pm.last_four]);
         if (pm.magic_link_token) entries.push(['Magic Link Token', pm.magic_link_token]);
-        if (pm.expires_at) entries.push(['过期时间', pm.expires_at]);
+        if (pm.expires_at) entries.push(['Expires', pm.expires_at]);
         console.log(Formatter.keyValue(entries));
 
         if (options.type === 'card') {
           console.log(
-            Formatter.status('info', '请到邮箱完成 3DS 验证以激活支付方式'),
+            Formatter.status('info', 'Complete 3DS verification via email to activate'),
           );
         }
       } else {

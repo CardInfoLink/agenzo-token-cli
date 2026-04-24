@@ -9,28 +9,28 @@ export function registerLoginCommand(
 ): void {
   program
     .command('login')
-    .description('登录到 Agent Payment API')
-    .option('--email <email>', '登录邮箱')
+    .description('Sign in to Agent Payment API')
+    .option('--email <email>', 'Email address')
     .action(async (options) => {
       const email = await PromptEngine.resolveInput(options.email, {
-        message: '邮箱:',
+        message: 'Email:',
       });
 
-      console.log(Formatter.status('loading', '正在发送 magic link...'));
+      console.log(Formatter.status('loading', 'Sending magic link...'));
 
       const result = await deps.authService.login(email);
 
       if (result.isNewRegistration) {
-        console.log(Formatter.status('success', '注册成功并已登录'));
+        console.log(Formatter.status('success', 'Registered and signed in'));
       } else {
-        console.log(Formatter.status('success', '登录成功'));
+        console.log(Formatter.status('success', 'Signed in successfully'));
       }
 
       console.log(
         Formatter.keyValue([
-          ['组织 ID', result.credential.org_id],
-          ['组织名称', result.credential.org_name],
-          ['邮箱', result.credential.email],
+          ['Org ID', result.credential.org_id],
+          ['Org Name', result.credential.org_name],
+          ['Email', result.credential.email],
         ]),
       );
     });

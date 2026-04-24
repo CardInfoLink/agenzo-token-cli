@@ -14,7 +14,7 @@ export class ConfigManager {
   private readonly configPath: string;
 
   constructor(basePath?: string) {
-    this.basePath = basePath ?? join(homedir(), '.agent-token-admin');
+    this.basePath = basePath ?? join(homedir(), '.agenzo-pay');
     this.configPath = join(this.basePath, 'config.json');
   }
 
@@ -30,7 +30,7 @@ export class ConfigManager {
         return JSON.parse(content) as AppConfig;
       } catch {
         throw new ConfigError(
-          `配置文件格式错误: ${this.configPath}`,
+          `Invalid config file: ${this.configPath}`,
           this.configPath,
         );
       }

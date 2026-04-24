@@ -17,7 +17,7 @@ export function registerRotateCommand(
 ): void {
   parent
     .command('rotate <key_id>')
-    .description('轮换 API Key')
+    .description('Rotate API Key')
     .action(async (keyId: string) => {
       const token = await deps.authService.getValidAccessToken();
 
@@ -35,19 +35,19 @@ export function registerRotateCommand(
           await deps.keyStore.update(orgId, keyId, key.api_key);
         }
 
-        console.log(Formatter.status('success', 'API Key 已轮换'));
+        console.log(Formatter.status('success', 'API Key rotated'));
         console.log(
-          Formatter.status('warning', `新 API Key: ${key.api_key}`),
+          Formatter.status('warning', `New API Key: ${key.api_key}`),
         );
         console.log(
-          Formatter.status('warning', '请妥善保存，此 Key 仅显示一次'),
+          Formatter.status('warning', 'Save it now — this key is shown only once'),
         );
         console.log(
           Formatter.keyValue([
             ['Key ID', key.id],
-            ['名称', key.name],
-            ['前缀', key.key_prefix],
-            ['状态', key.status],
+            ['Name', key.name],
+            ['Prefix', key.key_prefix],
+            ['Status', key.status],
           ]),
         );
       } else {

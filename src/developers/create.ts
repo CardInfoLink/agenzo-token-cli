@@ -11,17 +11,17 @@ export function registerCreateCommand(
 ): void {
   parent
     .command('create')
-    .description('创建开发者')
-    .option('--name <name>', '开发者名称')
-    .option('--email <email>', '开发者邮箱')
+    .description('Create a developer')
+    .option('--dev-name <name>', 'Developer name')
+    .option('--dev-email <email>', 'Developer email')
     .action(async (options) => {
       const token = await deps.authService.getValidAccessToken();
 
-      const name = await PromptEngine.resolveInput(options.name, {
-        message: '开发者名称:',
+      const name = await PromptEngine.resolveInput(options.devName, {
+        message: 'Developer name:',
       });
-      const email = await PromptEngine.resolveInput(options.email, {
-        message: '开发者邮箱:',
+      const email = await PromptEngine.resolveInput(options.devEmail, {
+        message: 'Developer email:',
       });
 
       const result = await deps.apiClient.post<Developer>(
@@ -31,15 +31,15 @@ export function registerCreateCommand(
       );
 
       if (result.success) {
-        console.log(Formatter.status('success', '开发者创建成功'));
+        console.log(Formatter.status('success', 'Developer created'));
         const data = result.data as Record<string, unknown>;
         console.log(
           Formatter.keyValue([
             ['ID', String(data.id ?? data.developer_id ?? '-')],
-            ['组织 ID', String(data.organization_id ?? '-')],
-            ['名称', String(data.name ?? '-')],
-            ['邮箱', String(data.email ?? '-')],
-            ['状态', String(data.status ?? '-')],
+            ['Org ID', String(data.organization_id ?? '-')],
+            ['Name', String(data.name ?? '-')],
+            ['Email', String(data.email ?? '-')],
+            ['Status', String(data.status ?? '-')],
           ]),
         );
       } else {

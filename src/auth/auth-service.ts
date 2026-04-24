@@ -42,7 +42,7 @@ export class AuthService {
       // Email not registered — collect org name and register
       isNewRegistration = true;
       const orgName = await PromptEngine.resolveInput(undefined, {
-        message: '组织名称:',
+        message: 'Organization name:',
       });
       const registerResult = await this.apiClient.post<{ magic_link_token: string }>(
         '/auth/register',
@@ -51,15 +51,15 @@ export class AuthService {
       );
       if (!registerResult.success) {
         throw new AuthError(
-          `注册失败: [${registerResult.errorCode}] ${registerResult.errorMessage}`,
-          '请检查输入后重试',
+          `Registration failed: [${registerResult.errorCode}] ${registerResult.errorMessage}`,
+          'Please check your input and try again',
         );
       }
       magicLinkToken = registerResult.data.magic_link_token;
     } else if (!loginResult.success) {
       throw new AuthError(
-        `登录失败: [${loginResult.errorCode}] ${loginResult.errorMessage}`,
-        '请检查邮箱后重试',
+        `Login failed: [${loginResult.errorCode}] ${loginResult.errorMessage}`,
+        'Please check your email and try again',
       );
     } else {
       magicLinkToken = loginResult.data.magic_link_token;
@@ -91,11 +91,11 @@ export class AuthService {
 
       if (!result.success) {
         if (result.errorCode === 1101) {
-          throw new AuthError('Magic link 已过期', '请重新执行 agent-token-admin login');
+          throw new AuthError('Magic link expired', 'Please run agenzo-pay login again');
         }
         throw new AuthError(
-          `轮询失败: [${result.errorCode}] ${result.errorMessage}`,
-          '请重新执行 agent-token-admin login',
+          `Polling failed: [${result.errorCode}] ${result.errorMessage}`,
+          'Please run agenzo-pay login again',
         );
       }
 
@@ -132,20 +132,20 @@ export class AuthService {
       }
 
       if (data.status === 'EXPIRED') {
-        throw new AuthError('Magic link 已过期', '请重新执行 agent-token-admin login');
+        throw new AuthError('Magic link expired', 'Please run agenzo-pay login again');
       }
 
       // PENDING — wait and retry
       await this.sleep(POLL_INTERVAL_MS);
     }
 
-    throw new AuthError('登录超时（10 分钟）', '请重新执行 agent-token-admin login');
+    throw new AuthError('Login timed out (10 minutes)', 'Please run agenzo-pay login again');
   }
 
   async logout(): Promise<void> {
     const orgId = await this.configManager.getActiveOrg();
     if (!orgId) {
-      throw new AuthError('未登录', '请先执行 agent-token-admin login');
+      throw new AuthError('Not signed in', 'Please run agenzo-pay login first');
     }
 
     const credential = await this.credentialStore.get(orgId);
@@ -167,12 +167,12 @@ export class AuthService {
   async getValidAccessToken(): Promise<string> {
     const orgId = await this.configManager.getActiveOrg();
     if (!orgId) {
-      throw new AuthError('未登录', '请先执行 agent-token-admin login');
+      throw new AuthError('Not signed in', 'Please run agenzo-pay login first');
     }
 
     const credential = await this.credentialStore.get(orgId);
     if (!credential) {
-      throw new AuthError('未登录', '请先执行 agent-token-admin login');
+      throw new AuthError('Not signed in', 'Please run agenzo-pay login first');
     }
 
     const now = Math.floor(Date.now() / 1000);
@@ -188,7 +188,7 @@ export class AuthService {
   async refreshToken(orgId: string): Promise<void> {
     const credential = await this.credentialStore.get(orgId);
     if (!credential) {
-      throw new AuthError('未登录', '请先执行 agent-token-admin login');
+      throw new AuthError('Not signed in', 'Please run agenzo-pay login first');
     }
 
     const result = await this.apiClient.post<RefreshResponse>(
@@ -199,11 +199,11 @@ export class AuthService {
 
     if (!result.success) {
       if (result.errorCode === 1002) {
-        throw new AuthError('登录已过期', '请重新执行 agent-token-admin login');
+        throw new AuthError('Session expired', 'Please run agenzo-pay login again');
       }
       throw new AuthError(
-        `令牌刷新失败: [${result.errorCode}] ${result.errorMessage}`,
-        '请重新执行 agent-token-admin login',
+        `Token refresh failed: [${result.errorCode}] ${result.errorMessage}`,
+        'Please run agenzo-pay login again',
       );
     }
 

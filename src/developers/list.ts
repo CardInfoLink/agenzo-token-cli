@@ -10,7 +10,7 @@ export function registerListCommand(
 ): void {
   parent
     .command('list')
-    .description('列出所有开发者')
+    .description('List all developers')
     .action(async () => {
       const token = await deps.authService.getValidAccessToken();
 
@@ -21,10 +21,10 @@ export function registerListCommand(
 
       if (result.success) {
         if (result.data.length === 0) {
-          console.log(Formatter.status('info', '暂无开发者'));
+          console.log(Formatter.status('info', 'No developers found'));
           return;
         }
-        const headers = ['ID', '名称', '邮箱', '状态'];
+        const headers = ['ID', 'Name', 'Email', 'Status'];
         const rows = result.data.map((d) => [
           d.id,
           d.name,

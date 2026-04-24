@@ -10,10 +10,10 @@ export function registerGetCommand(
 ): void {
   parent
     .command('get <payment_token_id>')
-    .description('查看支付令牌详情')
-    .option('--key <api_key>', 'API Key')
+    .description('View payment token details')
+    .option('--api-key <api_key>', 'API Key')
     .action(async (paymentTokenId: string, options) => {
-      const apiKey = await PromptEngine.resolveInput(options.key, {
+      const apiKey = await PromptEngine.resolveInput(options.apiKey, {
         message: 'API Key:',
       });
 
@@ -38,14 +38,14 @@ function formatPaymentToken(token: PaymentToken): void {
       console.log(
         Formatter.keyValue([
           ['Token ID', token.id],
-          ['类型', 'VCN'],
-          ['卡号', token.card_number],
-          ['有效期', token.expiry],
+          ['Type', 'VCN'],
+          ['Card Number', token.card_number],
+          ['Expiry', token.expiry],
           ['CVC', token.cvc],
-          ['后四位', token.last_four],
-          ['限额', String(token.amount_limit)],
-          ['货币', token.currency],
-          ['状态', token.status],
+          ['Last 4', token.last_four],
+          ['Limit', String(token.amount_limit)],
+          ['Currency', token.currency],
+          ['Status', token.status],
         ]),
       );
       break;
@@ -53,13 +53,13 @@ function formatPaymentToken(token: PaymentToken): void {
       console.log(
         Formatter.keyValue([
           ['Token ID', token.id],
-          ['类型', 'Network Token'],
-          ['品牌', token.brand],
-          ['前六位', token.token_first_six],
-          ['后四位', token.token_last_four],
+          ['Type', 'Network Token'],
+          ['Brand', token.brand],
+          ['First 6', token.token_first_six],
+          ['Last 4', token.token_last_four],
           ['ECI', token.eci],
           ['Cryptogram', token.cryptogram],
-          ['有效期', token.expiry],
+          ['Expiry', token.expiry],
           ['Value', token.value],
         ]),
       );
@@ -68,8 +68,8 @@ function formatPaymentToken(token: PaymentToken): void {
       console.log(
         Formatter.keyValue([
           ['Token ID', token.id],
-          ['类型', 'X402'],
-          ['状态', token.status],
+          ['Type', 'X402'],
+          ['Status', token.status],
           ['Signature Value', token.signature_value],
         ]),
       );

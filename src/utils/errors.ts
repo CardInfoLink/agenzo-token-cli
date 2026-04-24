@@ -25,8 +25,8 @@ export class NetworkError extends CliError {
   ) {
     super(
       timeout
-        ? `请求超时（${timeout}ms）: ${url}`
-        : `连接失败: ${url}`,
+        ? `Request timed out (${timeout}ms): ${url}`
+        : `Connection failed: ${url}`,
     );
   }
 }

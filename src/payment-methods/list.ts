@@ -10,11 +10,11 @@ export function registerListCommand(
 ): void {
   parent
     .command('list')
-    .description('列出支付方式')
-    .option('--key <api_key>', 'API Key')
-    .option('--member <member_id>', '按 member 过滤')
+    .description('List payment methods')
+    .option('--api-key <api_key>', 'API Key')
+    .option('--member <member_id>', 'Filter by member')
     .action(async (options) => {
-      const apiKey = await PromptEngine.resolveInput(options.key, {
+      const apiKey = await PromptEngine.resolveInput(options.apiKey, {
         message: 'API Key:',
       });
 
@@ -29,10 +29,10 @@ export function registerListCommand(
 
       if (result.success) {
         if (result.data.length === 0) {
-          console.log(Formatter.status('info', '暂无支付方式'));
+          console.log(Formatter.status('info', 'No payment methods found'));
           return;
         }
-        const headers = ['ID', '类型', '品牌', '前六位', '后四位', '状态'];
+        const headers = ['ID', 'Type', 'Brand', 'First 6', 'Last 4', 'Status'];
         const rows = result.data.map((pm) => [
           pm.id,
           pm.type,
