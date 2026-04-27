@@ -1,5 +1,6 @@
 export interface AppConfig {
   active_org: string | null;
+  active_developer_id: string | null;
   api_host: string;
   api_path: string;
 }

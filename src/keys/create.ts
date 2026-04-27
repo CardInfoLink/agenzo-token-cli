@@ -61,8 +61,6 @@ export function registerCreateCommand(
         );
         console.log(
           Formatter.keyValue([
-            ['Key ID', key.id],
-            ['Developer ID', key.developer_id],
             ['Name', key.name],
             ['Status', key.status],
           ]),
