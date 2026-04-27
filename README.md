@@ -1,5 +1,7 @@
 # agenzo-token-cli
 
+> ⚠️ **BETA** — This CLI is in closed beta testing. Features may change without notice. Not for production use. Stay tuned! Stay tuned!
+
 Command-line tool for the Agent Payment API.
 
 ## Installation
@@ -46,6 +48,7 @@ agenzo-token-cli payment-tokens create --type x402 --api-key ak_xxx --payment-me
 | `payment-methods add / list / get / disable` | Payment method management |
 | `payment-tokens create / list / get / revoke` | Payment tokens (VCN / Network Token / X402) |
 | `config set-host <host>` | Set API host (e.g. for local dev) |
+| `config reset-host` | Reset API host to default |
 | `config show` | Show current configuration |
 
 ## Authentication

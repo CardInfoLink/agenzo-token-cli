@@ -27,4 +27,13 @@ export function registerConfigCommand(
         ['Active Org', config.active_org ?? '(none)'],
       ]));
     });
+
+  configCmd
+    .command('reset-host')
+    .description('Reset API host to default (https://agenzo-token.everonet.com)')
+    .action(async () => {
+      const defaultHost = 'https://agenzo-token.everonet.com';
+      await deps.configManager.setApiHost(defaultHost);
+      console.log(Formatter.status('success', `API host reset to: ${defaultHost}`));
+    });
 }
