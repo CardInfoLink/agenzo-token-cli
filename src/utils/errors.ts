@@ -23,11 +23,16 @@ export class NetworkError extends CliError {
     public readonly timeout?: number,
     public readonly cause?: Error,
   ) {
-    super(
-      timeout
-        ? `Request timed out (${timeout}ms): ${url}`
-        : `Connection failed: ${url}`,
-    );
+    const detail = cause?.message;
+    let msg: string;
+    if (timeout) {
+      msg = `Request timed out (${timeout}ms): ${url}`;
+    } else if (detail) {
+      msg = `Connection failed: ${url} (${detail})`;
+    } else {
+      msg = `Connection failed: ${url}`;
+    }
+    super(msg);
   }
 }
 

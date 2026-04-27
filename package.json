@@ -1,6 +1,6 @@
 {
   "name": "agenzo-token-cli",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "CLI tool for the Agent Payment API",
   "type": "module",
   "main": "dist/index.js",

@@ -25,7 +25,7 @@ agenzo-token-cli developers create --developer-name "My Agent" --developer-email
 agenzo-token-cli keys create --developer-id dev_01KPX... --key-name "Production Key"
 
 # 4. Add a payment method (card) → returns payment-method-id (e.g. pm_01KPX...)
-agenzo-token-cli payment-methods add --api-key ak_xxx --card-email user@example.com
+agenzo-token-cli payment-methods add --api-key ak_xxx --email user@example.com
 
 # 5. Create a payment token (use payment-method-id from step 4)
 # VCN (virtual card)

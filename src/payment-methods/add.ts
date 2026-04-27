@@ -16,7 +16,7 @@ export function registerAddCommand(
     .description('Add a payment method')
     .option('--api-key <api_key>', 'API Key')
     .option('--type <type>', 'Payment type', 'card')
-    .option('--card-email <email>', 'Email for 3DS verification')
+    .option('--email <email>', 'Email for 3DS verification')
     .option('--card-number <card_number>', 'Card number')
     .option('--expiry <expiry>', 'Expiry (MMYY)')
     .action(async (options) => {
