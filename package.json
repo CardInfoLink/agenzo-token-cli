@@ -27,7 +27,17 @@
     "cli",
     "agent",
     "payment",
-    "token"
+    "token",
+    "ai-agent",
+    "vcn",
+    "network-token",
+    "x402",
+    "3ds",
+    "fintech",
+    "tokenization",
+    "evo-payment",
+    "card-binding",
+    "developer-tools"
   ],
   "author": "",
   "license": "MIT",

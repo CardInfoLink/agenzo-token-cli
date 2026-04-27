@@ -1,8 +1,12 @@
 # agenzo-token-cli
 
-> ⚠️ **BETA** — This CLI is in closed beta testing. Features may change without notice. Not for production use. Stay tuned! Stay tuned!
+[![npm version](https://img.shields.io/npm/v/agenzo-token-cli)](https://www.npmjs.com/package/agenzo-token-cli)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
 
-Command-line tool for the Agent Payment API.
+> ⚠️ **BETA** — This CLI is in closed beta testing. Features may change without notice. Not for production use.
+
+Command-line tool for AI Agents to manage payment tokens (VCN, Network Token, X402) via the Agent Payment API. Handles card binding with 3DS verification, multi-developer API key management, and interactive token creation.
 
 ## Installation
 
