@@ -104,10 +104,23 @@ export class ApiClient {
 
       // Error: either HTTP non-2xx or code !== "0000"
       const errorCode = code ? parseInt(code, 10) : 0;
+      // Handle FastAPI 422 validation errors where detail is an array
+      let errorMsg = message ?? response.statusText;
+      if (!errorMsg || errorMsg === response.statusText) {
+        const detail = responseBody.detail;
+        if (Array.isArray(detail)) {
+          errorMsg = detail.map((d: Record<string, unknown>) => {
+            const loc = (d.loc as string[])?.slice(1).join('.') ?? '';
+            return loc ? `${loc}: ${d.msg}` : String(d.msg);
+          }).join('; ');
+        } else if (typeof detail === 'string') {
+          errorMsg = detail;
+        }
+      }
       return {
         success: false,
         errorCode: isNaN(errorCode) ? 0 : errorCode,
-        errorMessage: message ?? (responseBody.detail as string) ?? response.statusText,
+        errorMessage: errorMsg,
         statusCode: response.status,
       };
     } catch (error) {

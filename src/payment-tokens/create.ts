@@ -1,8 +1,58 @@
 import { Command } from 'commander';
 import { randomUUID } from 'node:crypto';
+import { select } from '@inquirer/prompts';
 import { ApiClient } from '../api/client.js';
+import { PaymentMethod, PaymentToken } from '../types/api.js';
 import { PromptEngine } from '../utils/prompt-engine.js';
 import { Formatter } from '../utils/formatter.js';
+
+/** Format card display: first6****last4 Brand */
+function formatCardLabel(pm: PaymentMethod): string {
+  const first6 = pm.first6 ?? '??????';
+  const last4 = pm.last4 ?? '????';
+  const brand = pm.brand ?? 'Unknown';
+  return `${first6}****${last4}  ${brand}`;
+}
+
+/** Fetch payment methods and let user pick one interactively. */
+async function selectPaymentMethod(
+  apiClient: ApiClient,
+  apiKey: string,
+): Promise<string> {
+  console.log(Formatter.status('loading', 'Fetching payment methods...'));
+
+  const result = await apiClient.get<PaymentMethod[]>(
+    '/payment-methods',
+    { type: 'api-key', key: apiKey },
+  );
+
+  if (!result.success) {
+    console.error(Formatter.status('error', `Failed to list payment methods: ${result.errorMessage}`));
+    process.exit(1);
+  }
+
+  const methods = result.data.filter((pm) => pm.status === 'ACTIVE');
+  if (methods.length === 0) {
+    console.error(Formatter.status('error', 'No active payment methods found. Add one first with: payment-methods add'));
+    process.exit(1);
+  }
+
+  if (methods.length === 1) {
+    console.log(Formatter.status('info', `Using payment method: ${formatCardLabel(methods[0])}`));
+    return methods[0].id;
+  }
+
+  // Multiple cards — let user choose (no pm_id shown)
+  const choices = methods.map((pm) => ({
+    name: formatCardLabel(pm),
+    value: pm.id,
+  }));
+
+  return select({
+    message: 'Select payment method:',
+    choices,
+  });
+}
 
 export function registerCreateCommand(
   parent: Command,
@@ -27,9 +77,13 @@ export function registerCreateCommand(
         message: 'API Key:',
       });
 
-      const paymentMethodId = await PromptEngine.resolveInput(options.paymentMethodId, {
-        message: 'Payment method ID:',
-      });
+      // If --payment-method-id provided, use it; otherwise fetch list and let user pick
+      let paymentMethodId: string;
+      if (options.paymentMethodId) {
+        paymentMethodId = options.paymentMethodId;
+      } else {
+        paymentMethodId = await selectPaymentMethod(deps.apiClient, apiKey);
+      }
 
       const memberId = await PromptEngine.resolveInput(options.member, {
         message: 'Member ID:',
@@ -84,6 +138,8 @@ export function registerCreateCommand(
         body.deadline = Number(deadline);
       }
 
+      console.log(Formatter.status('loading', 'Creating payment token...'));
+
       const idempotencyKey = randomUUID();
       const result = await deps.apiClient.post<PaymentToken>(
         '/payment-tokens/create',
@@ -96,9 +152,7 @@ export function registerCreateCommand(
         console.log(Formatter.status('success', 'Payment token created'));
         formatPaymentToken(result.data as unknown as Record<string, unknown>);
       } else {
-        console.error(
-          Formatter.status('error', `[${result.errorCode}] ${result.errorMessage}`),
-        );
+        console.error(Formatter.status('error', result.errorMessage));
       }
     });
 }
@@ -118,8 +172,8 @@ function formatPaymentToken(data: Record<string, unknown>): void {
         ['Expiry', String(vcn.expiry ?? '-')],
         ['CVC', String(vcn.cvv ?? '-')],
         ['Last 4', String(vcn.last4 ?? '-')],
-        ['Limit', `$${(Number(vcn.spend_limit_cents ?? 0) / 100).toFixed(2)}`],
-        ['Balance', `$${(Number(vcn.balance_cents ?? 0) / 100).toFixed(2)}`],
+        ['Limit', `${(Number(vcn.spend_limit_cents ?? 0) / 100).toFixed(2)}`],
+        ['Balance', `${(Number(vcn.balance_cents ?? 0) / 100).toFixed(2)}`],
         ['Currency', String(vcn.currency ?? 'USD')],
         ['Status', String(vcn.status ?? status)],
       ]),
