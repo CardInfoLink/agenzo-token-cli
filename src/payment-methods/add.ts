@@ -19,6 +19,7 @@ export function registerAddCommand(
     .option('--email <email>', 'Email for 3DS verification')
     .option('--card-number <card_number>', 'Card number')
     .option('--expiry <expiry>', 'Expiry (MMYY)')
+    .option('--cvv <cvv>', 'CVV (use stdin pipe for better security)')
     .action(async (options) => {
       const apiKey = await PromptEngine.resolveInput(options.apiKey, {
         message: 'API Key:',

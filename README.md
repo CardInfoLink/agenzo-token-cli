@@ -15,7 +15,7 @@ CLI tool for AI Agents to manage payment tokens — VCN, Network Token, and X402
 - **Agent-Native Design** — Structured [SKILL.md](SKILL.md) out of the box, AI Agents can operate payment flows with zero extra setup
 - **Three Token Types** — VCN (virtual cards), Network Token (cryptogram-based), X402 (on-chain signatures)
 - **Interactive & Scriptable** — Smart prompts with card selection UI, or pass all flags for automation
-- **Secure by Default** — CVV masked input, OS-native credential storage, 3DS verification
+- **Secure by Default** — CVV masked input (or `--cvv` flag for automation), OS-native credential storage, 3DS verification
 - **Multi-Developer** — One org, multiple developers, scoped API keys
 
 ## Features
@@ -25,7 +25,7 @@ CLI tool for AI Agents to manage payment tokens — VCN, Network Token, and X402
 | 🔐 Auth | Magic Link login, auto-registration, token refresh, multi-org switch |
 | 👤 Developers | Create, list, get, update developers under your organization |
 | 🔑 API Keys | Create, list, rotate, disable keys scoped to each developer |
-| 💳 Payment Methods | Card binding with 3DS, verification polling, duplicate card override |
+| 💳 Payment Methods | Card binding with 3DS, verification polling, `--cvv` flag for automation, duplicate card override |
 | 🎫 VCN | Virtual card with spend limit, backed by AgentCard + Evo preauth |
 | 🔒 Network Token | Cryptogram via evo-cli, supports Visa & MasterCard (issuer-dependent) |
 | ⛓️ X402 | On-chain payment signature for Web3 transactions |
@@ -66,6 +66,9 @@ agenzo-token-cli keys create --developer-id dev_01KPX... --key-name "Production 
 
 # 4. Bind a card (interactive 3DS verification)
 agenzo-token-cli payment-methods add --api-key sk_prod_xxx --email user@example.com
+
+# Or pass all card details for automation (CVV via flag)
+agenzo-token-cli payment-methods add --api-key sk_prod_xxx --email user@example.com --card-number 2223001870064586 --expiry 1226 --cvv 935
 
 # 5. Create a payment token (interactive card selection)
 agenzo-token-cli payment-tokens create --type vcn --api-key sk_prod_xxx

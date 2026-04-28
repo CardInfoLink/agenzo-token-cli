@@ -61,8 +61,12 @@ export class PromptEngine {
       params.expiry_date = await PromptEngine.resolveInput(flags.expiry, {
         message: 'Expiry (MMYY):',
       });
-      // CVV is always collected interactively
-      params.cvv = await PromptEngine.collectCvv();
+      // CVV: use flag if provided, otherwise collect interactively
+      if (flags.cvv) {
+        params.cvv = flags.cvv;
+      } else {
+        params.cvv = await PromptEngine.collectCvv();
+      }
     }
 
     return params;
