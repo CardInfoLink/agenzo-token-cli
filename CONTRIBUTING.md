@@ -1,48 +1,48 @@
 # Contributing
 
-感谢你对 agenzo-token-cli 的贡献兴趣！
+Thanks for your interest in contributing to agenzo-token-cli!
 
-## 开发环境
+## Development Setup
 
 ```bash
-# 克隆项目
+# Clone the project
 git clone https://github.com/CardInfoLink/agent-token-cli.git
 cd agent-token-cli
 
-# 安装依赖
+# Install dependencies
 npm install
 
-# 开发构建（watch 模式）
+# Dev build (watch mode)
 npm run dev
 
-# 运行测试
+# Run tests
 npm test
 
-# 生产构建
+# Production build
 npm run build
 ```
 
-## 项目结构
+## Project Structure
 
 ```
 src/
-├── auth/              # 认证（login/logout + AuthService）
-├── orgs/              # 组织管理
-├── developers/        # 开发者管理
-├── keys/              # API Key 管理
-├── payment-methods/   # 支付方式
-├── payment-tokens/    # 支付令牌
-├── api/               # HTTP 客户端
-├── config/            # 本地配置与凭证管理
-├── utils/             # 格式化、交互提示、错误处理
-└── types/             # TypeScript 类型定义
+├── auth/              # Authentication (login/logout + AuthService)
+├── orgs/              # Organization management
+├── developers/        # Developer management
+├── keys/              # API Key management
+├── payment-methods/   # Payment methods (card binding + 3DS)
+├── payment-tokens/    # Payment tokens (VCN / Network Token / X402)
+├── api/               # HTTP client
+├── config/            # Local config & credential storage
+├── utils/             # Formatting, prompts, error handling
+└── types/             # TypeScript type definitions
 ```
 
-每个功能域目录内，一个文件对应一个子命令。例如修改 `developers create`，直接编辑 `src/developers/create.ts`。
+Each feature directory maps to a subcommand. For example, to modify `developers create`, edit `src/developers/create.ts`.
 
-## 提交规范
+## Commit Convention
 
-使用 [Conventional Commits](https://www.conventionalcommits.org/) 格式：
+Use [Conventional Commits](https://www.conventionalcommits.org/) format:
 
 ```
 feat: add new payment type support
@@ -52,8 +52,8 @@ refactor: simplify auth token refresh logic
 test: add property tests for formatter
 ```
 
-## Pull Request
+## Pull Requests
 
-1. Fork 项目并创建分支
-2. 确保 `npm run build` 和 `npm test` 通过
-3. 提交 PR 并描述变更内容
+1. Fork the repo and create a branch
+2. Make sure `npm run build` and `npm test` pass
+3. Submit a PR with a clear description of your changes

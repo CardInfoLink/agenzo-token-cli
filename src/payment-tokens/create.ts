@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { randomUUID } from 'node:crypto';
-import { select } from '@inquirer/prompts';
+import { select, confirm } from '@inquirer/prompts';
 import { ApiClient } from '../api/client.js';
 import { PaymentMethod, PaymentToken } from '../types/api.js';
 import { PromptEngine } from '../utils/prompt-engine.js';
@@ -14,10 +14,18 @@ function formatCardLabel(pm: PaymentMethod): string {
   return `${first6}****${last4}  ${brand}`;
 }
 
-/** Fetch payment methods and let user pick one interactively. */
-async function selectPaymentMethod(
+/** Fetch payment methods and resolve which one to use.
+ *
+ * Priority:
+ * 1. --payment-method-id flag → use directly
+ * 2. --card flag → match by last4 from card list
+ * 3. Only 1 active card → auto-select
+ * 4. Multiple cards → interactive selection
+ */
+async function resolvePaymentMethod(
   apiClient: ApiClient,
   apiKey: string,
+  cardNumber?: string,
 ): Promise<string> {
   console.log(Formatter.status('loading', 'Fetching payment methods...'));
 
@@ -37,12 +45,25 @@ async function selectPaymentMethod(
     process.exit(1);
   }
 
+  // If --card provided, match by last4
+  if (cardNumber) {
+    const last4 = cardNumber.slice(-4);
+    const matched = methods.find((pm) => pm.last4 === last4);
+    if (!matched) {
+      console.error(Formatter.status('error', `No active card ending in ${last4} found`));
+      process.exit(1);
+    }
+    console.log(Formatter.status('info', `Matched card: ${formatCardLabel(matched)}`));
+    return matched.id;
+  }
+
+  // Only 1 card → auto-select
   if (methods.length === 1) {
     console.log(Formatter.status('info', `Using payment method: ${formatCardLabel(methods[0])}`));
     return methods[0].id;
   }
 
-  // Multiple cards — let user choose (no pm_id shown)
+  // Multiple cards → interactive selection
   const choices = methods.map((pm) => ({
     name: formatCardLabel(pm),
     value: pm.id,
@@ -64,6 +85,7 @@ export function registerCreateCommand(
     .option('--api-key <api_key>', 'API Key')
     .option('--type <type>', 'Token type (vcn, network-token, x402)', 'vcn')
     .option('--payment-method-id <pm_id>', 'Payment method ID (e.g. pm_01KPX...)')
+    .option('--card <card_number>', 'Card number to match (matches by last 4 digits)')
     .option('--member <member_id>', 'Member ID')
     .option('--amount <amount>', 'Amount in USD (0.01-500.00)')
     .option('--currency <currency>', 'Currency (default: USD)')
@@ -72,17 +94,17 @@ export function registerCreateCommand(
     .option('--network <network>', 'Network (X402)')
     .option('--deadline <deadline>', 'Deadline Unix timestamp (X402)')
     .option('--external-tx-id <id>', 'External transaction ID (auto-generated if omitted)')
-    .action(async (options) => {
+    .action(async (options, command) => {
       const apiKey = await PromptEngine.resolveInput(options.apiKey, {
         message: 'API Key:',
       });
 
-      // If --payment-method-id provided, use it; otherwise fetch list and let user pick
+      // Resolve payment method: --payment-method-id > --card > auto/interactive
       let paymentMethodId: string;
       if (options.paymentMethodId) {
         paymentMethodId = options.paymentMethodId;
       } else {
-        paymentMethodId = await selectPaymentMethod(deps.apiClient, apiKey);
+        paymentMethodId = await resolvePaymentMethod(deps.apiClient, apiKey, options.card);
       }
 
       const memberId = await PromptEngine.resolveInput(options.member, {
@@ -138,6 +160,30 @@ export function registerCreateCommand(
         body.deadline = Number(deadline);
       }
 
+      // Confirmation for VCN and X402 (involves pre-auth freeze)
+      // Walk up command chain to find root --yes flag
+      let root = command;
+      while (root.parent) root = root.parent;
+      const skipConfirm = root.opts().yes === true;
+      if (!skipConfirm && (apiType === 'vcn' || apiType === 'x402')) {
+        const amountDisplay = apiType === 'vcn'
+          ? `$${(Number(body.amount) / 100).toFixed(2)}`
+          : `${body.amount} (smallest unit)`;
+        const frozenDisplay = apiType === 'vcn'
+          ? `$${(Number(body.amount) * 1.05 / 100).toFixed(2)}`
+          : `${body.amount} + 5% fee`;
+
+        console.log(Formatter.status('warning', `This will freeze ${frozenDisplay} on your card (${amountDisplay} + 5% service fee).`));
+        const confirmed = await confirm({
+          message: 'Proceed with pre-authorization?',
+          default: true,
+        });
+        if (!confirmed) {
+          console.log(Formatter.status('info', 'Cancelled.'));
+          return;
+        }
+      }
+
       console.log(Formatter.status('loading', 'Creating payment token...'));
 
       const idempotencyKey = randomUUID();
@@ -164,6 +210,9 @@ function formatPaymentToken(data: Record<string, unknown>): void {
 
   if (type === 'vcn') {
     const vcn = (data.vcn as Record<string, unknown>) ?? {};
+    const limitCents = Number(vcn.spend_limit_cents ?? 0);
+    const limitUsd = (limitCents / 100).toFixed(2);
+    const frozenUsd = (limitCents * 1.05 / 100).toFixed(2);
     console.log(
       Formatter.keyValue([
         ['Token ID', id],
@@ -172,12 +221,13 @@ function formatPaymentToken(data: Record<string, unknown>): void {
         ['Expiry', String(vcn.expiry ?? '-')],
         ['CVC', String(vcn.cvv ?? '-')],
         ['Last 4', String(vcn.last4 ?? '-')],
-        ['Limit', `${(Number(vcn.spend_limit_cents ?? 0) / 100).toFixed(2)}`],
+        ['Limit', limitUsd],
         ['Balance', `${(Number(vcn.balance_cents ?? 0) / 100).toFixed(2)}`],
         ['Currency', String(vcn.currency ?? 'USD')],
         ['Status', String(vcn.status ?? status)],
       ]),
     );
+    console.log(Formatter.status('warning', `Pre-auth frozen: $${frozenUsd} ($${limitUsd} + 5% service fee). Capture will also include 5% fee.`));
   } else if (type === 'network_token') {
     const nt = (data.network_token as Record<string, unknown>) ?? {};
     console.log(
@@ -206,6 +256,7 @@ function formatPaymentToken(data: Record<string, unknown>): void {
     console.log(
       Formatter.status('info', 'Use the Signature Value in the X-PAYMENT request header'),
     );
+    console.log(Formatter.status('warning', 'Pre-auth frozen: amount + 5% service fee. Capture will also include 5% fee.'));
   } else {
     console.log(Formatter.keyValue([
       ['Token ID', id],

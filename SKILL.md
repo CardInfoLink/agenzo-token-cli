@@ -70,22 +70,55 @@ agenzo-token-cli payment-methods add --api-key sk_prod_xxx --email user@example.
 
 ### Step 5: Create Payment Token
 
+All parameters are optional — supports full-flag mode (for scripts/AI Agents) and interactive mode (for humans).
+
 ```bash
-# VCN (Virtual Card Number)
-agenzo-token-cli payment-tokens create --type vcn --api-key sk_prod_xxx
+# Full-flag mode (no prompts)
+agenzo-token-cli payment-tokens create --type network-token --api-key sk_prod_xxx --card 5204731620064587 --member mem_001
 
-# Network Token (cryptogram-based)
-agenzo-token-cli payment-tokens create --type network-token --api-key sk_prod_xxx
+# Interactive mode (prompts for everything)
+agenzo-token-cli payment-tokens create --type vcn
 
-# X402 (on-chain payment signature)
-agenzo-token-cli payment-tokens create --type x402 --api-key sk_prod_xxx
+# Mixed mode (some flags, some prompts)
+agenzo-token-cli payment-tokens create --type vcn --api-key sk_prod_xxx --amount 30
 ```
 
-- Interactive: auto-fetches card list, lets user select if multiple cards
-- Card display format: `first6****last4  Brand` (e.g. `XXXXXX****1234  Visa`)
-- Prompts for member ID
-- VCN also prompts for amount (USD, 0.01-500.00)
-- X402 also prompts for pay-to address, nonce, network, deadline
+Card resolution priority:
+1. `--payment-method-id pm_xxx` → use directly (no API call)
+2. `--card 5204731620064587` → fetch card list, match by last 4 digits
+3. Only 1 active card → auto-select (no prompt)
+4. Multiple cards → interactive selection
+
+Available flags:
+
+| Flag | Description | Required for |
+|------|-------------|-------------|
+| `--api-key <key>` | API Key (`sk_prod_...`) | All types |
+| `--type <type>` | `vcn`, `network-token`, or `x402` (default: `vcn`) | All types |
+| `--card <number>` | Card number (matches by last 4 digits) | Optional |
+| `--payment-method-id <id>` | Payment method ID (skips card lookup) | Optional |
+| `--member <id>` | Member ID | All types |
+| `--amount <amount>` | Amount in USD for VCN (0.01-500.00) | VCN |
+| `--currency <code>` | Currency code (default: USD) | VCN |
+| `--pay-to <address>` | Recipient address | X402 |
+| `--nonce <nonce>` | Nonce value | X402 |
+| `--network <network>` | Chain network (e.g. `base`) | X402 |
+| `--deadline <timestamp>` | Unix timestamp deadline | X402 |
+| `--external-tx-id <id>` | External transaction ID (auto-generated if omitted) | Optional |
+
+### Pre-authorization Confirmation
+
+VCN and X402 involve pre-authorization (fund freeze). The CLI will:
+- Show the frozen amount (amount + 5% service fee)
+- Ask for confirmation: `Proceed with pre-authorization? (Y/n)`
+- Capture will also include 5% service fee
+
+To skip confirmation (for automation/AI Agents), use the global `--yes` flag:
+```bash
+agenzo-token-cli --yes payment-tokens create --type vcn --api-key sk_prod_xxx --card 520473... --member mem_001 --amount 30
+```
+
+Network Token does not involve pre-authorization, so no confirmation is needed.
 
 ## Token Types
 

@@ -71,6 +71,9 @@ agenzo-token-cli payment-methods add --api-key sk_prod_xxx --email user@example.
 agenzo-token-cli payment-tokens create --type vcn --api-key sk_prod_xxx
 agenzo-token-cli payment-tokens create --type network-token --api-key sk_prod_xxx
 agenzo-token-cli payment-tokens create --type x402 --api-key sk_prod_xxx
+
+# Or specify card directly (matches by last 4 digits, skips selection)
+agenzo-token-cli payment-tokens create --type network-token --api-key sk_prod_xxx --card 5204731620064587 --member mem_001
 ```
 
 ### For AI Agents
