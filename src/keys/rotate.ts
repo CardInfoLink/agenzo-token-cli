@@ -19,11 +19,11 @@ export function registerRotateCommand(
     .command('rotate <key_id>')
     .description('Rotate API Key')
     .action(async (keyId: string) => {
-      const token = await deps.authService.getValidAccessToken();
-
-      const result = await deps.apiClient.post<ApiKey>(
-        `/keys/${keyId}/rotate`,
-        { type: 'bearer', token },
+      const result = await deps.authService.executeWithAuth((token) =>
+        deps.apiClient.post<ApiKey>(
+          `/keys/${keyId}/rotate`,
+          { type: 'bearer', token },
+        ),
       );
 
       if (result.success) {

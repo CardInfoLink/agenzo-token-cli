@@ -14,16 +14,16 @@ export function registerListCommand(
     .description('List API Keys')
     .option('--developer-id <developer_id>', 'Developer ID (e.g. dev_01KPX...)')
     .action(async (options) => {
-      const token = await deps.authService.getValidAccessToken();
-
       const developerId = await PromptEngine.resolveInput(options.developerId, {
         message: 'Developer ID (e.g. dev_01KPX...):',
       });
 
-      const result = await deps.apiClient.get<ApiKey[]>(
-        '/keys',
-        { type: 'bearer', token },
-        { developer_id: developerId },
+      const result = await deps.authService.executeWithAuth((token) =>
+        deps.apiClient.get<ApiKey[]>(
+          '/keys',
+          { type: 'bearer', token },
+          { developer_id: developerId },
+        ),
       );
 
       if (result.success) {

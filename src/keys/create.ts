@@ -22,8 +22,6 @@ export function registerCreateCommand(
     .option('--developer-id <developer_id>', 'Developer ID (e.g. dev_01KPX...)')
     .option('--key-name <key_name>', 'Key name (e.g. Production Key)')
     .action(async (options) => {
-      const token = await deps.authService.getValidAccessToken();
-
       const developerId = await PromptEngine.resolveInput(options.developerId, {
         message: 'Developer ID (e.g. dev_01KPX...):',
       });
@@ -31,10 +29,12 @@ export function registerCreateCommand(
         message: 'Key name (e.g. Production Key):',
       });
 
-      const result = await deps.apiClient.post<ApiKey>(
-        '/keys/create',
-        { type: 'bearer', token },
-        { developer_id: developerId, name },
+      const result = await deps.authService.executeWithAuth((token) =>
+        deps.apiClient.post<ApiKey>(
+          '/keys/create',
+          { type: 'bearer', token },
+          { developer_id: developerId, name },
+        ),
       );
 
       if (result.success) {

@@ -89,6 +89,8 @@ async function pollVerificationStatus(
   pmId: string,
 ): Promise<PaymentMethod> {
   const startTime = Date.now();
+  const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+  let frameIdx = 0;
 
   while (Date.now() - startTime < POLL_TIMEOUT_MS) {
     const result = await apiClient.get<PaymentMethod>(
@@ -100,15 +102,21 @@ async function pollVerificationStatus(
     if (result.success) {
       const status = result.data.status;
       if (status === 'ACTIVE' || status === 'FAILED') {
+        // Clear the spinner line
+        process.stdout.write('\r\x1b[K');
         return result.data;
       }
-      // Still PENDING — show loading dot
-      process.stdout.write('.');
     }
+
+    // Animate spinner
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    process.stdout.write(`\r${frames[frameIdx]} Waiting for 3DS verification... (${elapsed}s)`);
+    frameIdx = (frameIdx + 1) % frames.length;
 
     await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
   }
 
-  // Timeout — return last known state
+  // Clear spinner on timeout
+  process.stdout.write('\r\x1b[K');
   return { id: pmId, status: 'PENDING' } as PaymentMethod;
 }

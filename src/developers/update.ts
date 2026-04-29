@@ -14,16 +14,16 @@ export function registerUpdateCommand(
     .option('--name <name>', 'New name')
     .option('--email <email>', 'New email')
     .action(async (developerId: string, options) => {
-      const token = await deps.authService.getValidAccessToken();
-
       const body: Record<string, unknown> = {};
       if (options.name) body.name = options.name;
       if (options.email) body.email = options.email;
 
-      const result = await deps.apiClient.post<Developer>(
-        `/developers/${developerId}/update`,
-        { type: 'bearer', token },
-        body,
+      const result = await deps.authService.executeWithAuth((token) =>
+        deps.apiClient.post<Developer>(
+          `/developers/${developerId}/update`,
+          { type: 'bearer', token },
+          body,
+        ),
       );
 
       if (result.success) {

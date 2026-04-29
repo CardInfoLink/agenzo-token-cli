@@ -1,10 +1,15 @@
 import { Command } from 'commander';
 import { randomUUID } from 'node:crypto';
-import { select, confirm } from '@inquirer/prompts';
+import { select, confirm, input } from '@inquirer/prompts';
 import { ApiClient } from '../api/client.js';
 import { PaymentMethod, PaymentToken } from '../types/api.js';
 import { PromptEngine } from '../utils/prompt-engine.js';
 import { Formatter } from '../utils/formatter.js';
+
+/** 5% fee with $0.01 minimum, input and output in cents */
+function calcFeeCents(amountCents: number): number {
+  return Math.max(1, Math.round(amountCents * 0.05));
+}
 
 /** Format card display: first6****last4 Brand */
 function formatCardLabel(pm: PaymentMethod): string {
@@ -83,10 +88,10 @@ export function registerCreateCommand(
     .command('create')
     .description('Create a payment token')
     .option('--api-key <api_key>', 'API Key')
-    .option('--type <type>', 'Token type (vcn, network-token, x402)', 'vcn')
+    .option('--type <type>', 'Token type (vcn, network-token, x402)')
     .option('--payment-method-id <pm_id>', 'Payment method ID (e.g. pm_01KPX...)')
     .option('--card <card_number>', 'Card number to match (matches by last 4 digits)')
-    .option('--member <member_id>', 'Member ID')
+    .option('--member <member_id>', 'Member ID (optional)')
     .option('--amount <amount>', 'Amount in USD (0.01-500.00)')
     .option('--currency <currency>', 'Currency (default: USD)')
     .option('--pay-to <address>', 'Pay-to address (X402)')
@@ -107,9 +112,20 @@ export function registerCreateCommand(
         paymentMethodId = await resolvePaymentMethod(deps.apiClient, apiKey, options.card);
       }
 
-      const memberId = await PromptEngine.resolveInput(options.member, {
-        message: 'Member ID:',
-      });
+      // Resolve token type: --type flag or interactive selection
+      let cliType: string;
+      if (options.type) {
+        cliType = options.type;
+      } else {
+        cliType = await select({
+          message: 'Token type:',
+          choices: [
+            { name: 'VCN (Virtual Card Number)', value: 'vcn' },
+            { name: 'Network Token', value: 'network-token' },
+            { name: 'X402 (Crypto Payment)', value: 'x402' },
+          ],
+        });
+      }
 
       // Map CLI type to API type
       const typeMap: Record<string, string> = {
@@ -117,16 +133,18 @@ export function registerCreateCommand(
         'network-token': 'network_token',
         'x402': 'x402',
       };
-      const apiType = typeMap[options.type] ?? options.type;
+      const apiType = typeMap[cliType] ?? cliType;
 
       const externalTxId = options.externalTxId ?? randomUUID();
 
       const body: Record<string, unknown> = {
         type: apiType,
         payment_method_id: paymentMethodId,
-        member_id: memberId,
         external_transaction_id: externalTxId,
       };
+      if (memberId) {
+        body.member_id = memberId;
+      }
 
       if (apiType === 'vcn') {
         const amountStr = await PromptEngine.resolveInput(options.amount, {
@@ -137,7 +155,11 @@ export function registerCreateCommand(
           console.error(Formatter.status('error', 'Amount must be between 0.01 and 500.00 USD'));
           return;
         }
-        body.amount = Math.round(amountUsd * 100); // Convert USD to cents for API
+        // Convert USD string to cents via string parsing to avoid
+        // floating-point precision issues (e.g. 1.005 * 100 = 100.499...)
+        const [whole = '0', frac = ''] = amountStr.split('.');
+        const cents = parseInt(whole, 10) * 100 + parseInt((frac + '00').slice(0, 2), 10);
+        body.amount = cents;
         if (options.currency) {
           body.currency = options.currency;
         }
@@ -160,20 +182,56 @@ export function registerCreateCommand(
         body.deadline = Number(deadline);
       }
 
-      // Confirmation for VCN and X402 (involves pre-auth freeze)
-      // Walk up command chain to find root --yes flag
+      // Member ID (optional, after all type-specific params)
+      const memberId = options.member ?? await (async () => {
+        const val = await input({ message: 'Member ID (optional, press Enter to skip):' });
+        return val.trim() || undefined;
+      })();
+
+      // Confirmation — walk up command chain to find root --yes flag
       let root = command;
       while (root.parent) root = root.parent;
       const skipConfirm = root.opts().yes === true;
-      if (!skipConfirm && (apiType === 'vcn' || apiType === 'x402')) {
-        const amountDisplay = apiType === 'vcn'
-          ? `$${(Number(body.amount) / 100).toFixed(2)}`
-          : `${body.amount} (smallest unit)`;
-        const frozenDisplay = apiType === 'vcn'
-          ? `$${(Number(body.amount) * 1.05 / 100).toFixed(2)}`
-          : `${body.amount} + 5% fee`;
 
-        console.log(Formatter.status('warning', `This will freeze ${frozenDisplay} on your card (${amountDisplay} + 5% service fee).`));
+      if (!skipConfirm && apiType === 'vcn') {
+        const amountCents = Number(body.amount);
+        const feeCents = calcFeeCents(amountCents);
+        const totalCents = amountCents + feeCents;
+        const amountDisplay = '$' + (amountCents / 100).toFixed(2);
+        const feeDisplay = '$' + (feeCents / 100).toFixed(2);
+        const totalDisplay = '$' + (totalCents / 100).toFixed(2);
+        console.log(Formatter.status('warning',
+          'This will freeze ' + totalDisplay + ' on your card (' + amountDisplay + ' + ' + feeDisplay + ' service fee, minimum $0.01).'));
+        const confirmed = await confirm({
+          message: 'Proceed with pre-authorization?',
+          default: true,
+        });
+        if (!confirmed) {
+          console.log(Formatter.status('info', 'Cancelled.'));
+          return;
+        }
+      }
+
+      if (!skipConfirm && apiType === 'network_token') {
+        console.log(Formatter.status('warning', 'A flat $5.00 service fee applies to this Network Token transaction.'));
+        const confirmed = await confirm({
+          message: 'Proceed?',
+          default: true,
+        });
+        if (!confirmed) {
+          console.log(Formatter.status('info', 'Cancelled.'));
+          return;
+        }
+      }
+
+      if (!skipConfirm && apiType === 'x402') {
+        const rawAmount = Number(body.amount);
+        const USDC_UNIT = 1_000_000;
+        const amountUsd = rawAmount / USDC_UNIT;
+        const feeUsd = Math.max(0.01, Math.round(amountUsd * 0.05 * 100) / 100);
+        const totalUsd = amountUsd + feeUsd;
+        console.log(Formatter.status('warning',
+          'This will freeze $' + totalUsd.toFixed(2) + ' USDC on your card ($' + amountUsd.toFixed(2) + ' + $' + feeUsd.toFixed(2) + ' service fee, minimum $0.01).'));
         const confirmed = await confirm({
           message: 'Proceed with pre-authorization?',
           default: true,
@@ -211,28 +269,27 @@ function formatPaymentToken(data: Record<string, unknown>): void {
   if (type === 'vcn') {
     const vcn = (data.vcn as Record<string, unknown>) ?? {};
     const limitCents = Number(vcn.spend_limit_cents ?? 0);
-    const limitUsd = (limitCents / 100).toFixed(2);
-    const frozenUsd = (limitCents * 1.05 / 100).toFixed(2);
+    const feeCents = calcFeeCents(limitCents);
+    const frozenCents = limitCents + feeCents;
     console.log(
       Formatter.keyValue([
-        ['Token ID', id],
         ['Type', 'VCN'],
         ['Card Number', String(vcn.pan ?? '-')],
         ['Expiry', String(vcn.expiry ?? '-')],
         ['CVC', String(vcn.cvv ?? '-')],
         ['Last 4', String(vcn.last4 ?? '-')],
-        ['Limit', limitUsd],
-        ['Balance', `${(Number(vcn.balance_cents ?? 0) / 100).toFixed(2)}`],
+        ['Limit', '$' + (limitCents / 100).toFixed(2)],
+        ['Service Fee', '$' + (feeCents / 100).toFixed(2)],
+        ['Pre-auth Frozen', '$' + (frozenCents / 100).toFixed(2)],
+        ['Balance', '$' + (Number(vcn.balance_cents ?? 0) / 100).toFixed(2)],
         ['Currency', String(vcn.currency ?? 'USD')],
         ['Status', String(vcn.status ?? status)],
       ]),
     );
-    console.log(Formatter.status('warning', `Pre-auth frozen: $${frozenUsd} ($${limitUsd} + 5% service fee). Capture will also include 5% fee.`));
   } else if (type === 'network_token') {
     const nt = (data.network_token as Record<string, unknown>) ?? {};
     console.log(
       Formatter.keyValue([
-        ['Token ID', id],
         ['Type', 'Network Token'],
         ['Brand', String(nt.payment_brand ?? nt.brand ?? '-')],
         ['Token Card', String(nt.last4_no ?? '-')],
@@ -240,6 +297,7 @@ function formatPaymentToken(data: Record<string, unknown>): void {
         ['Cryptogram', String(nt.token_cryptogram ?? '-')],
         ['Expiry', String(nt.expiry_date ?? '-')],
         ['Value', String(nt.value ?? '-')],
+        ['Service Fee', '$5.00'],
         ['Status', status],
       ]),
     );
@@ -247,7 +305,6 @@ function formatPaymentToken(data: Record<string, unknown>): void {
     const x402 = (data.x402 as Record<string, unknown>) ?? {};
     console.log(
       Formatter.keyValue([
-        ['Token ID', id],
         ['Type', 'X402'],
         ['Status', status],
         ['Signature Value', String(x402.signature_value ?? '-')],
@@ -256,10 +313,8 @@ function formatPaymentToken(data: Record<string, unknown>): void {
     console.log(
       Formatter.status('info', 'Use the Signature Value in the X-PAYMENT request header'),
     );
-    console.log(Formatter.status('warning', 'Pre-auth frozen: amount + 5% service fee. Capture will also include 5% fee.'));
   } else {
     console.log(Formatter.keyValue([
-      ['Token ID', id],
       ['Type', type],
       ['Status', status],
     ]));

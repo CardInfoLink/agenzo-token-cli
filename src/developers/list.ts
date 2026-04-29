@@ -12,11 +12,11 @@ export function registerListCommand(
     .command('list')
     .description('List all developers')
     .action(async () => {
-      const token = await deps.authService.getValidAccessToken();
-
-      const result = await deps.apiClient.get<Developer[]>(
-        '/developers',
-        { type: 'bearer', token },
+      const result = await deps.authService.executeWithAuth((token) =>
+        deps.apiClient.get<Developer[]>(
+          '/developers',
+          { type: 'bearer', token },
+        ),
       );
 
       if (result.success) {

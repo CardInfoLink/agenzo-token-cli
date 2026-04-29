@@ -15,8 +15,6 @@ export function registerCreateCommand(
     .option('--developer-name <name>', 'Developer name')
     .option('--developer-email <email>', 'Developer email')
     .action(async (options) => {
-      const token = await deps.authService.getValidAccessToken();
-
       const name = await PromptEngine.resolveInput(options.developerName, {
         message: 'Developer name:',
       });
@@ -24,10 +22,12 @@ export function registerCreateCommand(
         message: 'Developer email:',
       });
 
-      const result = await deps.apiClient.post<Developer>(
-        '/developers/create',
-        { type: 'bearer', token },
-        { name, email },
+      const result = await deps.authService.executeWithAuth((token) =>
+        deps.apiClient.post<Developer>(
+          '/developers/create',
+          { type: 'bearer', token },
+          { name, email },
+        ),
       );
 
       if (result.success) {

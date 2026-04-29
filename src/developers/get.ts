@@ -12,11 +12,11 @@ export function registerGetCommand(
     .command('get <developer_id>')
     .description('View developer details')
     .action(async (developerId: string) => {
-      const token = await deps.authService.getValidAccessToken();
-
-      const result = await deps.apiClient.get<Developer>(
-        `/developers/${developerId}`,
-        { type: 'bearer', token },
+      const result = await deps.authService.executeWithAuth((token) =>
+        deps.apiClient.get<Developer>(
+          `/developers/${developerId}`,
+          { type: 'bearer', token },
+        ),
       );
 
       if (result.success) {

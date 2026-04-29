@@ -12,11 +12,11 @@ export function registerDisableCommand(
     .command('disable <key_id>')
     .description('Disable API Key')
     .action(async (keyId: string) => {
-      const token = await deps.authService.getValidAccessToken();
-
-      const result = await deps.apiClient.post<DisableResult>(
-        `/keys/${keyId}/disable`,
-        { type: 'bearer', token },
+      const result = await deps.authService.executeWithAuth((token) =>
+        deps.apiClient.post<DisableResult>(
+          `/keys/${keyId}/disable`,
+          { type: 'bearer', token },
+        ),
       );
 
       if (result.success) {

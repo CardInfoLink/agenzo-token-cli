@@ -1,4 +1,4 @@
-import { ApiClient, AuthMode } from '../api/client.js';
+import { ApiClient, ApiResult, AuthMode } from '../api/client.js';
 import { CredentialStore } from '../config/credential-store.js';
 import { ConfigManager } from '../config/config-manager.js';
 import { OrgCredential } from '../types/config.js';
@@ -81,6 +81,8 @@ export class AuthService {
   ): Promise<OrgCredential> {
     const startTime = Date.now();
     const noAuth: AuthMode = { type: 'none' };
+    const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+    let frameIdx = 0;
 
     while (Date.now() - startTime < POLL_TIMEOUT_MS) {
       const result = await this.apiClient.get<MagicLinkStatusResponse>(
@@ -90,6 +92,7 @@ export class AuthService {
       );
 
       if (!result.success) {
+        process.stdout.write('\r\x1b[K');
         if (result.errorCode === 1101) {
           throw new AuthError('Magic link expired', 'Please run agenzo-token-cli login again');
         }
@@ -102,6 +105,7 @@ export class AuthService {
       const data = result.data;
 
       if (data.status === 'CONSUMED') {
+        process.stdout.write('\r\x1b[K');
         const raw = data as unknown as Record<string, unknown>;
         const org = raw.organization as Record<string, unknown> | undefined;
 
@@ -132,13 +136,19 @@ export class AuthService {
       }
 
       if (data.status === 'EXPIRED') {
+        process.stdout.write('\r\x1b[K');
         throw new AuthError('Magic link expired', 'Please run agenzo-token-cli login again');
       }
 
-      // PENDING — wait and retry
+      // PENDING — animate spinner
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      process.stdout.write(`\r${frames[frameIdx]} Waiting for email verification... (${elapsed}s)`);
+      frameIdx = (frameIdx + 1) % frames.length;
+
       await this.sleep(POLL_INTERVAL_MS);
     }
 
+    process.stdout.write('\r\x1b[K');
     throw new AuthError('Login timed out (10 minutes)', 'Please run agenzo-token-cli login again');
   }
 
@@ -177,12 +187,53 @@ export class AuthService {
 
     const now = Math.floor(Date.now() / 1000);
     if (credential.access_token_expires_at - now < TOKEN_REFRESH_THRESHOLD_S) {
-      await this.refreshToken(orgId);
-      const refreshed = await this.credentialStore.get(orgId);
-      return refreshed!.access_token;
+      try {
+        await this.refreshToken(orgId);
+        const refreshed = await this.credentialStore.get(orgId);
+        return refreshed!.access_token;
+      } catch {
+        // Refresh failed (token expired, revoked, etc.) — auto re-login
+        return this.autoReLogin(credential);
+      }
     }
 
     return credential.access_token;
+  }
+
+  /**
+   * Automatically re-login using the stored email.
+   * Sends a magic link and polls until verified, then updates the
+   * credential without changing the active org.
+   */
+  private async autoReLogin(credential: OrgCredential): Promise<string> {
+    const { Formatter } = await import('../utils/formatter.js');
+    console.log(Formatter.status('info', 'Session expired, re-authenticating...'));
+    console.log(Formatter.status('loading', 'Sending magic link...'));
+
+    const noAuth: AuthMode = { type: 'none' };
+    const loginResult = await this.apiClient.post<{ magic_link_token: string }>(
+      '/auth/login',
+      noAuth,
+      { email: credential.email },
+    );
+
+    if (!loginResult.success) {
+      throw new AuthError(
+        `Auto re-login failed: [${loginResult.errorCode}] ${loginResult.errorMessage}`,
+        'Please run agenzo-token-cli login manually',
+      );
+    }
+
+    const newCredential = await this.pollMagicLinkStatus(
+      loginResult.data.magic_link_token,
+      credential.email,
+    );
+
+    // Save new credential but do NOT change active org
+    await this.credentialStore.save(newCredential);
+    console.log(Formatter.status('success', 'Re-authenticated successfully'));
+
+    return newCredential.access_token;
   }
 
   async refreshToken(orgId: string): Promise<void> {
@@ -193,7 +244,7 @@ export class AuthService {
 
     const result = await this.apiClient.post<RefreshResponse>(
       '/auth/refresh',
-      { type: 'none' },
+      { type: 'bearer', token: credential.access_token },
       { refresh_token: credential.refresh_token },
     );
 
@@ -210,6 +261,48 @@ export class AuthService {
     credential.access_token = result.data.access_token;
     credential.access_token_expires_at = result.data.access_token_expires_at;
     await this.credentialStore.save(credential);
+  }
+
+  /**
+   * Execute an authenticated API call with automatic token recovery.
+   * If the call returns 1002 (token invalid), attempts refresh → re-login → retry once.
+   */
+  async executeWithAuth<T>(
+    apiFn: (token: string) => Promise<ApiResult<T>>,
+  ): Promise<ApiResult<T>> {
+    const token = await this.getValidAccessToken();
+    const result = await apiFn(token);
+
+    if (!result.success && result.errorCode === 1002) {
+      // Token rejected server-side — attempt recovery
+      const freshToken = await this.recoverToken();
+      return apiFn(freshToken);
+    }
+
+    return result;
+  }
+
+  /**
+   * Attempt token refresh; if that fails, fall back to auto re-login.
+   */
+  private async recoverToken(): Promise<string> {
+    const orgId = await this.configManager.getActiveOrg();
+    if (!orgId) {
+      throw new AuthError('Not signed in', 'Please run agenzo-token-cli login first');
+    }
+
+    const credential = await this.credentialStore.get(orgId);
+    if (!credential) {
+      throw new AuthError('Not signed in', 'Please run agenzo-token-cli login first');
+    }
+
+    try {
+      await this.refreshToken(orgId);
+      const refreshed = await this.credentialStore.get(orgId);
+      return refreshed!.access_token;
+    } catch {
+      return this.autoReLogin(credential);
+    }
   }
 
   private sleep(ms: number): Promise<void> {

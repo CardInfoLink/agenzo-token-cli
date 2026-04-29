@@ -12,10 +12,11 @@ export function registerMeCommand(
     .command('me')
     .description('View current organization')
     .action(async () => {
-      const token = await deps.authService.getValidAccessToken();
-      const result = await deps.apiClient.get<Organization>(
-        '/organizations/me',
-        { type: 'bearer', token },
+      const result = await deps.authService.executeWithAuth((token) =>
+        deps.apiClient.get<Organization>(
+          '/organizations/me',
+          { type: 'bearer', token },
+        ),
       );
 
       if (result.success) {

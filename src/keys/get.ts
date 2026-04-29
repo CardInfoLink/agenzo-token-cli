@@ -12,11 +12,11 @@ export function registerGetCommand(
     .command('get <key_id>')
     .description('View API Key details')
     .action(async (keyId: string) => {
-      const token = await deps.authService.getValidAccessToken();
-
-      const result = await deps.apiClient.get<ApiKey>(
-        `/keys/${keyId}`,
-        { type: 'bearer', token },
+      const result = await deps.authService.executeWithAuth((token) =>
+        deps.apiClient.get<ApiKey>(
+          `/keys/${keyId}`,
+          { type: 'bearer', token },
+        ),
       );
 
       if (result.success) {
