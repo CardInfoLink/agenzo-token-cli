@@ -141,8 +141,7 @@ export class AuthService {
       }
 
       // PENDING — animate spinner
-      const elapsed = Math.floor((Date.now() - startTime) / 1000);
-      process.stdout.write(`\r${frames[frameIdx]} Waiting for email verification... (${elapsed}s)`);
+      process.stdout.write(`\r${frames[frameIdx]} Waiting for email verification`);
       frameIdx = (frameIdx + 1) % frames.length;
 
       await this.sleep(POLL_INTERVAL_MS);
@@ -207,8 +206,8 @@ export class AuthService {
    */
   private async autoReLogin(credential: OrgCredential): Promise<string> {
     const { Formatter } = await import('../utils/formatter.js');
-    console.log(Formatter.status('info', 'Session expired, re-authenticating...'));
-    console.log(Formatter.status('loading', 'Sending magic link...'));
+    console.log(Formatter.status('info', 'Session expired, re-authenticating'));
+    console.log(Formatter.status('loading', 'Sending magic link'));
 
     const noAuth: AuthMode = { type: 'none' };
     const loginResult = await this.apiClient.post<{ magic_link_token: string }>(
@@ -259,7 +258,15 @@ export class AuthService {
     }
 
     credential.access_token = result.data.access_token;
-    credential.access_token_expires_at = result.data.access_token_expires_at;
+    credential.refresh_token = result.data.refresh_token;
+
+    // Handle expires_at: backend returns ISO string, we need unix timestamp
+    if (result.data.access_token_expires_at) {
+      credential.access_token_expires_at = result.data.access_token_expires_at;
+    } else if (result.data.expires_at) {
+      credential.access_token_expires_at = Math.floor(new Date(result.data.expires_at).getTime() / 1000);
+    }
+
     await this.credentialStore.save(credential);
   }
 

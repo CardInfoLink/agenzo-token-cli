@@ -56,7 +56,7 @@ export function registerAddCommand(
           Formatter.status('info', 'Complete 3DS verification via email to activate'),
         );
         console.log(
-          Formatter.status('loading', 'Waiting for 3DS verification...'),
+          Formatter.status('loading', 'Waiting for 3DS verification'),
         );
 
         const finalPm = await pollVerificationStatus(deps.apiClient, apiKey, pm.id);
@@ -109,8 +109,7 @@ async function pollVerificationStatus(
     }
 
     // Animate spinner
-    const elapsed = Math.floor((Date.now() - startTime) / 1000);
-    process.stdout.write(`\r${frames[frameIdx]} Waiting for 3DS verification... (${elapsed}s)`);
+    process.stdout.write(`\r${frames[frameIdx]} Waiting for 3DS verification`);
     frameIdx = (frameIdx + 1) % frames.length;
 
     await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));

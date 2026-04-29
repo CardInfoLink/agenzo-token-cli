@@ -32,7 +32,7 @@ async function resolvePaymentMethod(
   apiKey: string,
   cardNumber?: string,
 ): Promise<string> {
-  console.log(Formatter.status('loading', 'Fetching payment methods...'));
+  console.log(Formatter.status('loading', 'Fetching payment methods'));
 
   const result = await apiClient.get<PaymentMethod[]>(
     '/payment-methods',
@@ -246,7 +246,7 @@ export function registerCreateCommand(
         }
       }
 
-      console.log(Formatter.status('loading', 'Creating payment token...'));
+      console.log(Formatter.status('loading', 'Creating payment token'));
 
       const idempotencyKey = randomUUID();
       const result = await deps.apiClient.post<PaymentToken>(
@@ -277,6 +277,7 @@ function formatPaymentToken(data: Record<string, unknown>): void {
     const frozenCents = limitCents + feeCents;
     console.log(
       Formatter.keyValue([
+        ['Payment Token ID', id],
         ['Type', 'VCN'],
         ['Card Number', String(vcn.pan ?? '-')],
         ['Expiry', String(vcn.expiry ?? '-')],
@@ -294,6 +295,7 @@ function formatPaymentToken(data: Record<string, unknown>): void {
     const nt = (data.network_token as Record<string, unknown>) ?? {};
     console.log(
       Formatter.keyValue([
+        ['Payment Token ID', id],
         ['Type', 'Network Token'],
         ['Brand', String(nt.payment_brand ?? nt.brand ?? '-')],
         ['Token Card', String(nt.last4_no ?? '-')],
@@ -307,11 +309,19 @@ function formatPaymentToken(data: Record<string, unknown>): void {
     );
   } else if (type === 'x402') {
     const x402 = (data.x402 as Record<string, unknown>) ?? {};
+    const frozenCents = Number(x402.evo_frozen_cents ?? data.preauth_total_cents ?? 0);
     console.log(
       Formatter.keyValue([
+        ['Payment Token ID', id],
         ['Type', 'X402'],
         ['Status', status],
+        ['Pay To', String(x402.pay_to ?? '-')],
+        ['Amount', String(x402.amount ?? '-')],
+        ['Nonce', String(x402.nonce ?? '-')],
+        ['Network', String(x402.network ?? '-')],
+        ['Deadline', String(x402.deadline ?? '-')],
         ['Signature Value', String(x402.signature_value ?? '-')],
+        ['Evo Frozen', frozenCents > 0 ? '$' + (frozenCents / 100).toFixed(2) : '-'],
       ]),
     );
     console.log(
@@ -319,6 +329,7 @@ function formatPaymentToken(data: Record<string, unknown>): void {
     );
   } else {
     console.log(Formatter.keyValue([
+      ['Payment Token ID', id],
       ['Type', type],
       ['Status', status],
     ]));

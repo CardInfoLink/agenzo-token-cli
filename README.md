@@ -94,12 +94,73 @@ agenzo-token-cli payment-tokens create --type network-token --api-key sk_prod_xx
 |---------|-------------|
 | `login` | Sign in via Magic Link (auto-registers on first use) |
 | `logout` | Sign out of current organization |
-| `orgs me / list / switch` | Organization management |
+| `orgs me / update / list / switch` | Organization management |
 | `developers create / list / get / update` | Developer management |
 | `keys create / list / get / rotate / disable` | API Key management |
 | `payment-methods add / list / get / disable` | Card binding with 3DS verification |
 | `payment-tokens create / list / get / revoke` | Payment tokens (VCN / Network Token / X402) |
 | `config set-host / reset-host / show` | API host configuration |
+
+## Command Reference
+
+### Organization Management
+```bash
+agenzo-token-cli orgs me                              # View current org
+agenzo-token-cli orgs list                            # List all signed-in orgs
+agenzo-token-cli orgs switch <org_id>                 # Switch active org
+agenzo-token-cli orgs update --name "New Org Name"    # Update org name
+agenzo-token-cli orgs update --email new@example.com  # Update org email (requires verification)
+```
+
+### Developer Management
+```bash
+agenzo-token-cli developers create --developer-name "My Agent" --developer-email agent@example.com
+agenzo-token-cli developers list
+agenzo-token-cli developers get <developer_id>
+agenzo-token-cli developers update <developer_id> --name "New Name"
+agenzo-token-cli developers update <developer_id> --email new@example.com
+```
+
+### API Key Management
+```bash
+agenzo-token-cli keys create --developer-id <dev_id> --key-name "Prod Key"
+agenzo-token-cli keys list --developer-id <dev_id>
+agenzo-token-cli keys get <key_id>
+agenzo-token-cli keys rotate <key_id>     # Generate new key value (old one invalidated)
+agenzo-token-cli keys disable <key_id>    # Permanently disable key
+```
+
+### Payment Method Management
+```bash
+agenzo-token-cli payment-methods add --api-key <key>
+agenzo-token-cli payment-methods add --api-key <key> --email user@example.com --card-number 2223001870064586 --expiry 1226 --cvv 935
+agenzo-token-cli payment-methods list --api-key <key>
+agenzo-token-cli payment-methods get <pm_id> --api-key <key>
+agenzo-token-cli payment-methods disable <pm_id> --api-key <key>
+```
+
+### Payment Token Management
+```bash
+# Interactive mode (prompts for type, amount, etc.)
+agenzo-token-cli payment-tokens create --api-key <key>
+
+# Full-flag mode (for automation / AI Agents)
+agenzo-token-cli --yes payment-tokens create --type vcn --api-key <key> --card 2223001870064586 --amount 30
+agenzo-token-cli --yes payment-tokens create --type network-token --api-key <key> --card 2223001870064586
+agenzo-token-cli --yes payment-tokens create --type x402 --api-key <key> --payment-method-id <pm_id> --pay-to 0xABC... --amount 1000000 --nonce abc123 --network base_sepolia --deadline 1777457396
+
+# Query and revoke
+agenzo-token-cli payment-tokens list --api-key <key>
+agenzo-token-cli payment-tokens get <ptk_id> --api-key <key>
+agenzo-token-cli payment-tokens revoke <ptk_id> --api-key <key>
+```
+
+### Configuration
+```bash
+agenzo-token-cli config set-host http://localhost:8000  # Set API host (local dev)
+agenzo-token-cli config reset-host                      # Reset to default
+agenzo-token-cli config show                            # Show current config
+```
 
 ## Authentication
 

@@ -16,7 +16,7 @@ export function registerLoginCommand(
         message: 'Email:',
       });
 
-      console.log(Formatter.status('loading', 'Sending magic link...'));
+      console.log(Formatter.status('loading', 'Sending magic link'));
 
       const result = await deps.authService.login(email);
 

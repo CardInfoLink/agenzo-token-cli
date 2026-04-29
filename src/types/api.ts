@@ -27,7 +27,9 @@ export interface RefreshRequest {
 
 export interface RefreshResponse {
   access_token: string;
-  access_token_expires_at: number;
+  refresh_token: string;
+  access_token_expires_at?: number;
+  expires_at?: string; // ISO string from backend
 }
 
 // ============================================================
