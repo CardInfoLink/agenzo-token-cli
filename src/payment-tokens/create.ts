@@ -142,9 +142,6 @@ export function registerCreateCommand(
         payment_method_id: paymentMethodId,
         external_transaction_id: externalTxId,
       };
-      if (memberId) {
-        body.member_id = memberId;
-      }
 
       if (apiType === 'vcn') {
         const amountStr = await PromptEngine.resolveInput(options.amount, {
@@ -187,6 +184,9 @@ export function registerCreateCommand(
         const val = await input({ message: 'Member ID (optional, press Enter to skip):' });
         return val.trim() || undefined;
       })();
+      if (memberId) {
+        body.member_id = memberId;
+      }
 
       // Confirmation — walk up command chain to find root --yes flag
       let root = command;
