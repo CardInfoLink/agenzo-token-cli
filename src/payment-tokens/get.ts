@@ -59,7 +59,6 @@ function formatPaymentToken(data: Record<string, unknown>): void {
         ['Token ID', id],
         ['Type', 'Network Token'],
         ['Brand', String(nt.payment_brand ?? nt.brand ?? '-')],
-        ['Token Card', String(nt.last4_no ?? '-')],
         ['ECI', String(nt.eci ?? '-')],
         ['Cryptogram', String(nt.token_cryptogram ?? '-')],
         ['Expiry', String(nt.expiry_date ?? '-')],
