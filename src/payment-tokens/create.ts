@@ -181,7 +181,7 @@ export function registerCreateCommand(
 
       // Member ID (optional, after all type-specific params)
       const memberId = options.member ?? await (async () => {
-        const val = await input({ message: 'Member ID (optional, press Enter to skip):' });
+        const val = await input({ message: 'Member ID (optional):' });
         return val.trim() || undefined;
       })();
       if (memberId) {
