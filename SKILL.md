@@ -95,7 +95,7 @@ agenzo-token-cli payment-tokens create --type vcn
 
 | Parameter | Ask rule |
 |-----------|----------|
-| `--member` | MUST ask. No default. |
+| `--member` | Optional. Ask if not provided, user can press Enter to skip. |
 | `--amount` | MUST ask for VCN. Range: 0.01–500.00 USD. |
 | `--card` | If multiple active cards exist, MUST ask which card to use. If only one active card, auto-select. |
 | `--pay-to` | MUST ask for X402. |
@@ -105,7 +105,9 @@ agenzo-token-cli payment-tokens create --type vcn
 
 **Parameters to reuse from previous steps (do not ask again):**
 - `--api-key`: from Step 3
-- `--type`: from user's request
+- `--type`: from user's request (no default; if not provided, interactive selector is shown)
+
+**Note:** `--member` is optional and can be omitted in `--yes` mode. In interactive mode, the user is prompted but can press Enter to skip.
 
 Card resolution priority:
 1. `--payment-method-id pm_xxx` → use directly (no API call)
@@ -118,10 +120,10 @@ Available flags:
 | Flag | Description | Required for |
 |------|-------------|-------------|
 | `--api-key <key>` | API Key (`sk_prod_...`) | All types |
-| `--type <type>` | `vcn`, `network-token`, or `x402` (default: `vcn`) | All types |
+| `--type <type>` | `vcn`, `network-token`, or `x402` (no default; interactive selector) | All types |
 | `--card <number>` | Card number (matches by last 4 digits) | Optional |
 | `--payment-method-id <id>` | Payment method ID (skips card lookup) | Optional |
-| `--member <id>` | Member ID | All types |
+| `--member <id>` | Member ID | Optional |
 | `--amount <amount>` | Amount in USD (0.01-500.00) | VCN |
 | `--currency <code>` | Currency code (default: USD) | VCN |
 | `--pay-to <address>` | Recipient address | X402 |
@@ -133,9 +135,10 @@ Available flags:
 ### Pre-authorization Confirmation
 
 VCN and X402 involve pre-authorization (fund freeze):
-- Frozen amount = amount + 5% service fee
-- Capture will also include 5% service fee
-- Use `--yes` global flag to skip confirmation (always use this when executing for the user)
+- VCN: Frozen amount = amount + service fee (5%). Displayed as concrete dollar values.
+- X402: Amount converted from USDC smallest units to USD (1 USD = 1,000,000 units). Service fee 5%.
+- Network Token: Flat $5.00 service fee (no pre-authorization freeze).
+- Use `--yes` global flag to skip confirmation (always use this when executing for the user).
 
 Network Token does not involve pre-authorization.
 

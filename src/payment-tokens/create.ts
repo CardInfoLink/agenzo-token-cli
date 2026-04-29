@@ -180,18 +180,22 @@ export function registerCreateCommand(
       }
 
       // Member ID (optional, after all type-specific params)
-      const memberId = options.member ?? await (async () => {
-        const val = await input({ message: 'Member ID (optional):' });
-        return val.trim() || undefined;
-      })();
+      // In --yes mode, skip interactive prompt — use flag value or omit
+      let root = command;
+      while (root.parent) root = root.parent;
+      const skipConfirm = root.opts().yes === true;
+
+      const memberId = skipConfirm
+        ? (options.member ?? undefined)
+        : (options.member ?? await (async () => {
+            const val = await input({ message: 'Member ID (optional):' });
+            return val.trim() || undefined;
+          })());
       if (memberId) {
         body.member_id = memberId;
       }
 
-      // Confirmation — walk up command chain to find root --yes flag
-      let root = command;
-      while (root.parent) root = root.parent;
-      const skipConfirm = root.opts().yes === true;
+      // Confirmation
 
       if (!skipConfirm && apiType === 'vcn') {
         const amountCents = Number(body.amount);
@@ -201,7 +205,7 @@ export function registerCreateCommand(
         const feeDisplay = '$' + (feeCents / 100).toFixed(2);
         const totalDisplay = '$' + (totalCents / 100).toFixed(2);
         console.log(Formatter.status('warning',
-          'This will freeze ' + totalDisplay + ' on your card (' + amountDisplay + ' + ' + feeDisplay + ' service fee, minimum $0.01).'));
+          'This will freeze ' + totalDisplay + ' on your card (' + amountDisplay + ' + ' + feeDisplay + ' service fee).'));
         const confirmed = await confirm({
           message: 'Proceed with pre-authorization?',
           default: true,
@@ -231,7 +235,7 @@ export function registerCreateCommand(
         const feeUsd = Math.max(0.01, Math.round(amountUsd * 0.05 * 100) / 100);
         const totalUsd = amountUsd + feeUsd;
         console.log(Formatter.status('warning',
-          'This will freeze $' + totalUsd.toFixed(2) + ' USDC on your card ($' + amountUsd.toFixed(2) + ' + $' + feeUsd.toFixed(2) + ' service fee, minimum $0.01).'));
+          'This will freeze $' + totalUsd.toFixed(2) + ' on your card ($' + amountUsd.toFixed(2) + ' + $' + feeUsd.toFixed(2) + ' service fee).'));
         const confirmed = await confirm({
           message: 'Proceed with pre-authorization?',
           default: true,
