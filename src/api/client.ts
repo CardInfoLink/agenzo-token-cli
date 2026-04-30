@@ -88,7 +88,34 @@ export class ApiClient {
         signal: controller.signal,
       });
 
-      const responseBody = await response.json() as Record<string, unknown>;
+      // Handle non-JSON responses (e.g. 500 Internal Server Error returns plain text)
+      const contentType = response.headers.get('content-type') ?? '';
+      let responseBody: Record<string, unknown>;
+      if (contentType.includes('application/json')) {
+        responseBody = await response.json() as Record<string, unknown>;
+      } else {
+        const text = await response.text();
+        if (!response.ok) {
+          const statusMsg = this.friendlyStatusMessage(response.status);
+          return {
+            success: false,
+            errorCode: 0,
+            errorMessage: statusMsg,
+            statusCode: response.status,
+          };
+        }
+        // Try parsing as JSON anyway (some servers don't set content-type)
+        try {
+          responseBody = JSON.parse(text) as Record<string, unknown>;
+        } catch {
+          return {
+            success: false,
+            errorCode: 0,
+            errorMessage: `Unexpected response from server (${response.status})`,
+            statusCode: response.status,
+          };
+        }
+      }
 
       // Server uses unified format: { code: "0000", message: "...", data: {...} }
       const code = responseBody.code as string | undefined;
@@ -131,5 +158,22 @@ export class ApiClient {
     } finally {
       clearTimeout(timeoutId);
     }
+  }
+
+  private friendlyStatusMessage(status: number): string {
+    const messages: Record<number, string> = {
+      400: 'Invalid request. Please check your input.',
+      401: 'Authentication failed. Please check your API key or login again.',
+      403: 'Access denied. You do not have permission for this operation.',
+      404: 'Resource not found. Please check the ID.',
+      409: 'Conflict. This resource may already exist.',
+      422: 'Invalid input. Please check the request parameters.',
+      429: 'Too many requests. Please wait and try again.',
+      500: 'Something went wrong on the server. Please try again later.',
+      502: 'Service is temporarily unavailable. Please try again in a moment.',
+      503: 'Service is temporarily unavailable. Please try again in a moment.',
+      504: 'The request took too long. Please try again.',
+    };
+    return messages[status] ?? `Something went wrong (${status}). Please try again later.`;
   }
 }

@@ -51,14 +51,14 @@ export class AuthService {
       );
       if (!registerResult.success) {
         throw new AuthError(
-          `Registration failed: [${registerResult.errorCode}] ${registerResult.errorMessage}`,
+          `Registration failed: ${registerResult.errorMessage}`,
           'Please check your input and try again',
         );
       }
       magicLinkToken = registerResult.data.magic_link_token;
     } else if (!loginResult.success) {
       throw new AuthError(
-        `Login failed: [${loginResult.errorCode}] ${loginResult.errorMessage}`,
+        `Login failed: ${loginResult.errorMessage}`,
         'Please check your email and try again',
       );
     } else {

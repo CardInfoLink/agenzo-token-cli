@@ -36,7 +36,7 @@ export function registerGetCommand(
         console.log(Formatter.keyValue(entries));
       } else {
         console.error(
-          Formatter.status('error', `[${result.errorCode}] ${result.errorMessage}`),
+          Formatter.status('error', result.errorMessage),
         );
       }
     });

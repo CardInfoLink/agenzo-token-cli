@@ -43,7 +43,7 @@ export function registerListCommand(
         console.log(Formatter.table(headers, rows));
       } else {
         console.error(
-          Formatter.status('error', `[${result.errorCode}] ${result.errorMessage}`),
+          Formatter.status('error', result.errorMessage),
         );
       }
     });
@@ -54,16 +54,18 @@ function getSummary(data: Record<string, unknown>): string {
 
   if (type === 'vcn') {
     const vcn = (data.vcn as Record<string, unknown>) ?? {};
-    return `****${vcn.last4 ?? '?'} $${(Number(vcn.spend_limit_cents ?? 0) / 100).toFixed(2)}`;
+    const amount = `$${(Number(vcn.spend_limit_cents ?? 0) / 100).toFixed(2)}`;
+    return `****${vcn.last4 ?? '?'} ${amount}`;
   }
   if (type === 'network_token') {
     const nt = (data.network_token as Record<string, unknown>) ?? {};
-    return `${nt.payment_brand ?? '-'} ****${nt.last4_no ?? '?'}`;
+    return String(nt.payment_brand ?? '-');
   }
   if (type === 'x402') {
     const x402 = (data.x402 as Record<string, unknown>) ?? {};
-    const sig = String(x402.signature_value ?? '');
-    return sig ? sig.slice(0, 16) + '...' : '-';
+    const amount = x402.amount ? String(x402.amount) : '-';
+    const network = x402.network ? String(x402.network) : '';
+    return network ? `${amount} ${network}` : amount;
   }
   return '-';
 }

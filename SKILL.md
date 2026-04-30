@@ -33,6 +33,8 @@ login → developers create → keys create → payment-methods add → payment-
 
 ### Step 1: Login
 
+**Ask: `--email`** — MUST ask the user for their email address before executing. Never assume or use a default.
+
 ```bash
 agenzo-token-cli login --email user@example.com
 ```
@@ -155,6 +157,23 @@ Network Token does not involve pre-authorization.
 Not all cards support Network Token. Depends on issuer and card network, not brand.
 
 How to check: after card binding, `evo_data.network_token` field has a value if supported, empty if not.
+
+Cards without support will get: `This card does not support Network Token.`
+
+### VCN / X402 Compatibility
+
+VCN and X402 require a `gateway_token` in `evo_data`. If missing (3DS not completed properly), the error is: `This card does not support VCN/X402. Gateway token is missing.`
+
+### Revoke Behavior
+
+| Card Brand | Revoke Action |
+|------------|---------------|
+| **Visa** | No action needed. Cryptogram auto-expires in 24 hours. |
+| **MasterCard** | Generates a new cryptogram to push out the old one (MasterCard max 2 active). |
+
+MasterCard uses a FIFO cryptogram cache queue (max 2 entries):
+- **Create**: fills cache to 2, returns the oldest (queue head)
+- **Revoke**: removes queue head, generates new one to refill to 2
 
 ## Other Commands
 

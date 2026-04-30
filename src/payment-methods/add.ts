@@ -38,7 +38,7 @@ export function registerAddCommand(
 
       if (!result.success) {
         console.error(
-          Formatter.status('error', `[${result.errorCode}] ${result.errorMessage}`),
+          Formatter.status('error', result.errorMessage),
         );
         return;
       }
@@ -54,9 +54,6 @@ export function registerAddCommand(
       if (options.type === 'card' && pm.status === 'PENDING') {
         console.log(
           Formatter.status('info', 'Complete 3DS verification via email to activate'),
-        );
-        console.log(
-          Formatter.status('loading', 'Waiting for 3DS verification'),
         );
 
         const finalPm = await pollVerificationStatus(deps.apiClient, apiKey, pm.id);

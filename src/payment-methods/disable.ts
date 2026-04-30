@@ -32,7 +32,7 @@ export function registerDisableCommand(
         );
       } else {
         console.error(
-          Formatter.status('error', `[${result.errorCode}] ${result.errorMessage}`),
+          Formatter.status('error', result.errorMessage),
         );
       }
     });

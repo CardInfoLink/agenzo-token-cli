@@ -273,8 +273,6 @@ function formatPaymentToken(data: Record<string, unknown>): void {
   if (type === 'vcn') {
     const vcn = (data.vcn as Record<string, unknown>) ?? {};
     const limitCents = Number(vcn.spend_limit_cents ?? 0);
-    const feeCents = calcFeeCents(limitCents);
-    const frozenCents = limitCents + feeCents;
     console.log(
       Formatter.keyValue([
         ['Payment Token ID', id],
@@ -282,15 +280,13 @@ function formatPaymentToken(data: Record<string, unknown>): void {
         ['Card Number', String(vcn.pan ?? '-')],
         ['Expiry', String(vcn.expiry ?? '-')],
         ['CVC', String(vcn.cvv ?? '-')],
-        ['Last 4', String(vcn.last4 ?? '-')],
         ['Limit', '$' + (limitCents / 100).toFixed(2)],
-        ['Service Fee', '$' + (feeCents / 100).toFixed(2)],
-        ['Pre-auth Frozen', '$' + (frozenCents / 100).toFixed(2)],
         ['Balance', '$' + (Number(vcn.balance_cents ?? 0) / 100).toFixed(2)],
         ['Currency', String(vcn.currency ?? 'USD')],
-        ['Status', String(vcn.status ?? status)],
+        ['Status', status],
       ]),
     );
+    console.log(Formatter.status('warning', `Pre-auth frozen: $${(limitCents * 1.05 / 100).toFixed(2)} ($${(limitCents / 100).toFixed(2)} + 5% service fee). Capture will also include 5% fee.`));
   } else if (type === 'network_token') {
     const nt = (data.network_token as Record<string, unknown>) ?? {};
     console.log(
@@ -308,7 +304,6 @@ function formatPaymentToken(data: Record<string, unknown>): void {
     );
   } else if (type === 'x402') {
     const x402 = (data.x402 as Record<string, unknown>) ?? {};
-    const frozenCents = Number(x402.evo_frozen_cents ?? data.preauth_total_cents ?? 0);
     console.log(
       Formatter.keyValue([
         ['Payment Token ID', id],
@@ -320,12 +315,12 @@ function formatPaymentToken(data: Record<string, unknown>): void {
         ['Network', String(x402.network ?? '-')],
         ['Deadline', String(x402.deadline ?? '-')],
         ['Signature Value', String(x402.signature_value ?? '-')],
-        ['Evo Frozen', frozenCents > 0 ? '$' + (frozenCents / 100).toFixed(2) : '-'],
       ]),
     );
     console.log(
       Formatter.status('info', 'Use the Signature Value in the X-PAYMENT request header'),
     );
+    console.log(Formatter.status('warning', 'Pre-auth frozen: amount + 5% service fee. Capture will also include 5% fee.'));
   } else {
     console.log(Formatter.keyValue([
       ['Payment Token ID', id],

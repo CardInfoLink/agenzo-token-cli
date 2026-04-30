@@ -25,7 +25,7 @@ export function registerGetCommand(
         formatPaymentToken(result.data);
       } else {
         console.error(
-          Formatter.status('error', `[${result.errorCode}] ${result.errorMessage}`),
+          Formatter.status('error', result.errorMessage),
         );
       }
     });
@@ -49,7 +49,7 @@ function formatPaymentToken(data: Record<string, unknown>): void {
         ['Limit', `$${(Number(vcn.spend_limit_cents ?? 0) / 100).toFixed(2)}`],
         ['Balance', `$${(Number(vcn.balance_cents ?? 0) / 100).toFixed(2)}`],
         ['Currency', String(vcn.currency ?? 'USD')],
-        ['Status', String(vcn.status ?? status)],
+        ['Status', status],
       ]),
     );
   } else if (type === 'network_token') {
@@ -73,6 +73,11 @@ function formatPaymentToken(data: Record<string, unknown>): void {
         ['Token ID', id],
         ['Type', 'X402'],
         ['Status', status],
+        ['Pay To', String(x402.pay_to ?? '-')],
+        ['Amount', String(x402.amount ?? '-')],
+        ['Nonce', String(x402.nonce ?? '-')],
+        ['Network', String(x402.network ?? '-')],
+        ['Deadline', String(x402.deadline ?? '-')],
         ['Signature Value', String(x402.signature_value ?? '-')],
       ]),
     );
