@@ -54,8 +54,11 @@ function getSummary(data: Record<string, unknown>): string {
 
   if (type === 'vcn') {
     const vcn = (data.vcn as Record<string, unknown>) ?? {};
+    const first6 = vcn.first6 ? String(vcn.first6) : '';
+    const last4 = vcn.last4 ? String(vcn.last4) : '?';
+    const card = first6 ? `${first6}****${last4}` : `****${last4}`;
     const amount = `$${(Number(vcn.spend_limit_cents ?? 0) / 100).toFixed(2)}`;
-    return `****${vcn.last4 ?? '?'} ${amount}`;
+    return `${card} ${amount}`;
   }
   if (type === 'network_token') {
     const nt = (data.network_token as Record<string, unknown>) ?? {};
