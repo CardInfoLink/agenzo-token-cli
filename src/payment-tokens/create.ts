@@ -286,7 +286,7 @@ function formatPaymentToken(data: Record<string, unknown>): void {
         ['Status', status],
       ]),
     );
-    console.log(Formatter.status('warning', `Pre-auth frozen: $${(limitCents * 1.05 / 100).toFixed(2)} ($${(limitCents / 100).toFixed(2)} + 5% service fee). Capture will also include 5% fee.`));
+    console.log(Formatter.status('warning', `Pre-auth frozen: $${(limitCents * 1.05 / 100).toFixed(2)} ($${(limitCents / 100).toFixed(2)} + 5% service fee).`));
   } else if (type === 'network_token') {
     const nt = (data.network_token as Record<string, unknown>) ?? {};
     console.log(
@@ -320,7 +320,7 @@ function formatPaymentToken(data: Record<string, unknown>): void {
     console.log(
       Formatter.status('info', 'Use the Signature Value in the X-PAYMENT request header'),
     );
-    console.log(Formatter.status('warning', 'Pre-auth frozen: amount + 5% service fee. Capture will also include 5% fee.'));
+    console.log(Formatter.status('warning', 'Pre-auth frozen: amount + 5% service fee.'));
   } else {
     console.log(Formatter.keyValue([
       ['Payment Token ID', id],
