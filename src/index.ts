@@ -59,7 +59,7 @@ async function main() {
   const authService = new AuthService(apiClient, credentialStore, configManager);
 
   // Shared deps objects
-  const controlPlaneDeps = { apiClient, authService };
+  const controlPlaneDeps = { apiClient, authService, credentialStore, configManager };
   const runtimePlaneDeps = { apiClient };
   const keysDeps = { apiClient, authService, keyStore, configManager };
   const orgsDeps = { credentialStore, configManager };
@@ -68,7 +68,7 @@ async function main() {
   const program = new Command();
   program
     .name('agenzo-token-cli')
-    .version('0.12.1')
+    .version('0.12.3')
     .description('Agent Payment API CLI')
     .option('--verbose', 'Show verbose logs')
     .option('--yes', 'Skip confirmation prompts (for automation/AI Agents)')

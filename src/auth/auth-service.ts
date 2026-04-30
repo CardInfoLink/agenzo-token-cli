@@ -218,7 +218,7 @@ export class AuthService {
 
     if (!loginResult.success) {
       throw new AuthError(
-        `Auto re-login failed: [${loginResult.errorCode}] ${loginResult.errorMessage}`,
+        `Auto re-login failed: ${loginResult.errorMessage}`,
         'Please run agenzo-token-cli login manually',
       );
     }
@@ -228,7 +228,21 @@ export class AuthService {
       credential.email,
     );
 
-    // Save new credential but do NOT change active org
+    // Check if re-login returned a different org than expected
+    const activeOrg = await this.configManager.getActiveOrg();
+    if (activeOrg && newCredential.org_id !== activeOrg) {
+      // Save the credential for the org we actually logged into
+      await this.credentialStore.save(newCredential);
+      // Switch active org to match
+      await this.configManager.setActiveOrg(newCredential.org_id);
+      console.log(Formatter.status('warning', `You were signed into a different organization: ${newCredential.org_name}. Your active organization has been updated.`));
+      throw new AuthError(
+        'Please run your command again.',
+        'The active organization was switched during re-authentication.',
+      );
+    }
+
+    // Same org — update credential and continue
     await this.credentialStore.save(newCredential);
     console.log(Formatter.status('success', 'Re-authenticated successfully'));
 
