@@ -27,10 +27,13 @@ export class AuthService {
   ) {}
 
   async login(email: string): Promise<LoginResult> {
+    const { Formatter } = await import('../utils/formatter.js');
     let isNewRegistration = false;
     const noAuth: AuthMode = { type: 'none' };
 
-    // Step 1: Try login
+    // Step 1: Probe whether this email is already registered.
+    // No user-facing status here — we haven't sent anything yet, and we may
+    // still need to collect organization / invitation details.
     const loginResult = await this.apiClient.post<{ magic_link_token: string }>(
       '/auth/login',
       noAuth,
@@ -52,7 +55,8 @@ export class AuthService {
       };
 
       // Attempt registration; if backend requires an invitation code (1103),
-      // prompt for it and retry.
+      // prompt for it and retry. Still silent — the email isn't sent until
+      // we have all required fields.
       let registerResult = await this.apiClient.post<{ magic_link_token: string }>(
         '/auth/register',
         noAuth,
@@ -86,6 +90,10 @@ export class AuthService {
     } else {
       magicLinkToken = loginResult.data.magic_link_token;
     }
+
+    // Magic link token in hand means the backend has dispatched the email.
+    // This is the only place the "Sending magic link" status is truthful.
+    console.log(Formatter.status('success', 'Magic link sent. Please check your inbox.'));
 
     // Step 2: Poll magic link status
     const credential = await this.pollMagicLinkStatus(magicLinkToken, email);

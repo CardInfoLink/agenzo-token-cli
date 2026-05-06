@@ -15,9 +15,6 @@ export function registerLoginCommand(
       const email = await PromptEngine.resolveInput(options.email, {
         message: 'Email:',
       });
-
-      console.log(Formatter.status('loading', 'Sending magic link'));
-
       const result = await deps.authService.login(email);
 
       if (result.isNewRegistration) {
