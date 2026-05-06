@@ -68,13 +68,10 @@ async function main() {
   const program = new Command();
   program
     .name('agenzo-token-cli')
-    .version('0.14.0')
+    .version('1.0.0')
     .description('Agent Payment API CLI')
     .option('--verbose', 'Show verbose logs')
-    .option('--yes', 'Skip confirmation prompts (for automation/AI Agents)')
-    .hook('preAction', () => {
-      console.log('⚠️  BETA — This CLI is in closed beta. Features may change without notice. Stay tuned!\n');
-    });
+    .option('--yes', 'Skip confirmation prompts (for automation/AI Agents)');
 
   // Register top-level auth commands
   registerLoginCommand(program, { authService });

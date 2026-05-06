@@ -40,6 +40,7 @@ agenzo-token-cli login --email user@example.com
 ```
 
 - First-time users are auto-registered (prompts for org name)
+- **Invitation code**: If the backend requires an invitation code for new registrations (error `1103`), the CLI will prompt `Invitation code:` interactively. MUST ask the user to provide it; do not generate or guess a value. The CLI sends it as the `invitation_code` field and retries registration automatically.
 - Sends a magic link to the email
 - CLI polls until the link is clicked (up to 10 minutes)
 - Credentials are stored locally in `~/.agenzo-token-cli/`
@@ -245,6 +246,7 @@ agenzo-token-cli config show                            # Show current config
 | `Evo preauth failed` | PSP or issuer rejected preauth | Try a different card or retry later |
 | `email: value is not a valid email address` | Invalid email format | Check email format |
 | `Duplicate key error` | Developer with same email exists | Use `developers list` to find existing |
+| `Invitation code required` (code `1103`) | Registration requires an invitation code | Ask the user for their invitation code at the interactive prompt |
 | `Internal Server Error` | Unhandled backend exception | Check backend logs |
 | `Connection failed` | Backend not running or wrong host | Check `config show` for API host |
 

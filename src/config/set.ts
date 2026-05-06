@@ -10,7 +10,7 @@ export function registerConfigCommand(
 
   configCmd
     .command('set-host <host>')
-    .description('Set API host (e.g. https://agenzo-token.everonet.com)')
+    .description('Set API host (e.g. https://agent.everonet.com)')
     .action(async (host: string) => {
       await deps.configManager.setApiHost(host);
       console.log(Formatter.status('success', `API host set to: ${host}`));
@@ -30,9 +30,9 @@ export function registerConfigCommand(
 
   configCmd
     .command('reset-host')
-    .description('Reset API host to default (https://agenzo-token.everonet.com)')
+    .description('Reset API host to default (https://agent.everonet.com)')
     .action(async () => {
-      const defaultHost = 'https://agenzo-token.everonet.com';
+      const defaultHost = 'https://agent.everonet.com';
       await deps.configManager.setApiHost(defaultHost);
       console.log(Formatter.status('success', `API host reset to: ${defaultHost}`));
     });

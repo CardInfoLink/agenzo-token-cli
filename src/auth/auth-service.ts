@@ -40,16 +40,37 @@ export class AuthService {
     let magicLinkToken: string;
 
     if (!loginResult.success && loginResult.errorCode === 1007) {
-      // Email not registered — collect org name and register
+      // Email not registered — collect org name (and optionally invitation code) and register
       isNewRegistration = true;
       const orgName = await PromptEngine.resolveInput(undefined, {
         message: 'Organization name:',
       });
-      const registerResult = await this.apiClient.post<{ magic_link_token: string }>(
+
+      const registerBody: Record<string, string> = {
+        email,
+        organization_name: orgName,
+      };
+
+      // Attempt registration; if backend requires an invitation code (1103),
+      // prompt for it and retry.
+      let registerResult = await this.apiClient.post<{ magic_link_token: string }>(
         '/auth/register',
         noAuth,
-        { email, organization_name: orgName },
+        registerBody,
       );
+
+      if (!registerResult.success && registerResult.errorCode === 1103) {
+        const invitationCode = await PromptEngine.resolveInput(undefined, {
+          message: 'Invitation code:',
+        });
+        registerBody.invitation_code = invitationCode;
+        registerResult = await this.apiClient.post<{ magic_link_token: string }>(
+          '/auth/register',
+          noAuth,
+          registerBody,
+        );
+      }
+
       if (!registerResult.success) {
         throw new AuthError(
           `Registration failed: ${registerResult.errorMessage}`,

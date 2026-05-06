@@ -4,8 +4,6 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
 
-> ⚠️ **BETA** — This CLI is in closed beta testing. Features may change without notice.
-
 CLI tool for AI Agents to manage payment tokens — VCN, Network Token, and X402. Built for humans and AI Agents, with interactive prompts, 3DS card binding, and multi-developer API key management.
 
 [Install](#installation) · [AI Agent Skill](#ai-agent-skill) · [Quick Start](#quick-start) · [Commands](#commands) · [Auth](#authentication) · [Contributing](CONTRIBUTING.md)

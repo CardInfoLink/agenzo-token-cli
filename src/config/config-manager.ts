@@ -6,7 +6,7 @@ import { ConfigError } from '../utils/errors.js';
 
 const DEFAULT_CONFIG: AppConfig = {
   active_org: null,
-  api_host: 'https://agenzo-token.everonet.com',
+  api_host: 'https://agent.everonet.com',
   api_path: '/api/v3/agent-pay',
 };
 
