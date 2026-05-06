@@ -68,7 +68,7 @@ async function main() {
   const program = new Command();
   program
     .name('agenzo-token-cli')
-    .version('1.0.0')
+    .version('1.1.0')
     .description('Agent Payment API CLI')
     .option('--verbose', 'Show verbose logs')
     .option('--yes', 'Skip confirmation prompts (for automation/AI Agents)');

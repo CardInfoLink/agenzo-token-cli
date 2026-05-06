@@ -8,6 +8,8 @@ export interface ApiClientConfig {
 export interface ApiResponse<T> {
   success: true;
   data: T;
+  /** Server-provided message from the unified response envelope. */
+  message?: string;
 }
 
 export interface ApiError {
@@ -126,7 +128,7 @@ export class ApiClient {
       if (response.ok && (!code || code === '0000')) {
         // If server wraps data in a "data" field, unwrap it
         const payload = data ?? responseBody;
-        return { success: true, data: payload as T };
+        return { success: true, data: payload as T, message };
       }
 
       // Error: either HTTP non-2xx or code !== "0000"

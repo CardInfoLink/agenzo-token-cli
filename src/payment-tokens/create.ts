@@ -19,6 +19,33 @@ function formatCardLabel(pm: PaymentMethod): string {
   return `${first6}****${last4}  ${brand}`;
 }
 
+/** Check whether the VCN feature is enabled on the server.
+ *
+ * Calls GET /features/vcn.
+ * - Returns `{ ok: true }` when enabled.
+ * - Returns `{ ok: false, message }` when disabled — passes the server
+ *   message through verbatim.
+ * - Exits the process on network/API failure so the caller never has to
+ *   handle ambiguous feature state.
+ */
+async function checkVcnFeatureEnabled(
+  apiClient: ApiClient,
+  apiKey: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const result = await apiClient.get<{ name: string; enabled: boolean }>(
+    '/features/vcn',
+    { type: 'api-key', key: apiKey },
+  );
+  if (!result.success) {
+    console.error(Formatter.status('error', result.errorMessage));
+    process.exit(1);
+  }
+  if (result.data.enabled === true) {
+    return { ok: true };
+  }
+  return { ok: false, message: result.message ?? '' };
+}
+
 /** Fetch payment methods and resolve which one to use.
  *
  * Priority:
@@ -144,6 +171,15 @@ export function registerCreateCommand(
       };
 
       if (apiType === 'vcn') {
+        // Gate the VCN interactive flow on the server-side feature switch.
+        // Check BEFORE any VCN-specific prompts so a disabled feature short-
+        // circuits early without collecting inputs the user cannot use.
+        const vcnCheck = await checkVcnFeatureEnabled(deps.apiClient, apiKey);
+        if (!vcnCheck.ok) {
+          console.error(Formatter.status('error', vcnCheck.message));
+          return;
+        }
+
         const amountStr = await PromptEngine.resolveInput(options.amount, {
           message: 'Amount in USD (0.01-500.00):',
         });
