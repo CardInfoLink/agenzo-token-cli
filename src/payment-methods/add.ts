@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import { ApiClient } from '../api/client.js';
 import { PromptEngine } from '../utils/prompt-engine.js';
-import { Formatter } from '../utils/formatter.js';
+import { Formatter, createSpinner } from '../utils/formatter.js';
 import { PaymentMethod } from '../types/api.js';
 
 const POLL_INTERVAL_MS = 3000;
@@ -30,11 +30,13 @@ export function registerAddCommand(
         options,
       );
 
+      const spinner = createSpinner('Adding payment method');
       const result = await deps.apiClient.post<PaymentMethod>(
         '/payment-methods/create',
         { type: 'api-key', key: apiKey },
         params,
       );
+      spinner.stop();
 
       if (!result.success) {
         console.error(
@@ -86,8 +88,7 @@ async function pollVerificationStatus(
   pmId: string,
 ): Promise<PaymentMethod> {
   const startTime = Date.now();
-  const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
-  let frameIdx = 0;
+  const spinner = createSpinner('Waiting for 3DS verification');
 
   while (Date.now() - startTime < POLL_TIMEOUT_MS) {
     const result = await apiClient.get<PaymentMethod>(
@@ -99,20 +100,14 @@ async function pollVerificationStatus(
     if (result.success) {
       const status = result.data.status;
       if (status === 'ACTIVE' || status === 'FAILED') {
-        // Clear the spinner line
-        process.stdout.write('\r\x1b[K');
+        spinner.stop();
         return result.data;
       }
     }
 
-    // Animate spinner
-    process.stdout.write(`\r${frames[frameIdx]} Waiting for 3DS verification`);
-    frameIdx = (frameIdx + 1) % frames.length;
-
     await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
   }
 
-  // Clear spinner on timeout
-  process.stdout.write('\r\x1b[K');
+  spinner.stop();
   return { id: pmId, status: 'PENDING' } as PaymentMethod;
 }

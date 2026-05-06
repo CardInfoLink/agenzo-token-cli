@@ -8,6 +8,45 @@ const STATUS_ICONS: Record<StatusPrefix, string> = {
   loading: '⠋',
 };
 
+const SPINNER_FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+
+export interface Spinner {
+  /** Update the spinner message while it's running */
+  update(message: string): void;
+  /** Stop the spinner and show a final status line */
+  stop(type?: StatusPrefix, finalMessage?: string): void;
+}
+
+/**
+ * Creates an animated terminal spinner that cycles through braille frames.
+ * Call `spinner.stop()` when the async work is done.
+ */
+export function createSpinner(message: string, intervalMs = 60): Spinner {
+  let frameIdx = 0;
+  let currentMessage = message;
+
+  const render = () => {
+    process.stdout.write(`\r\x1b[K${SPINNER_FRAMES[frameIdx]} ${currentMessage}`);
+    frameIdx = (frameIdx + 1) % SPINNER_FRAMES.length;
+  };
+
+  render();
+  const timer = setInterval(render, intervalMs);
+
+  return {
+    update(msg: string) {
+      currentMessage = msg;
+    },
+    stop(type?: StatusPrefix, finalMessage?: string) {
+      clearInterval(timer);
+      process.stdout.write('\r\x1b[K');
+      if (type && finalMessage) {
+        console.log(Formatter.status(type, finalMessage));
+      }
+    },
+  };
+}
+
 export class Formatter {
   /** Get display width of a string (CJK characters count as 2) */
   private static displayWidth(str: string): number {

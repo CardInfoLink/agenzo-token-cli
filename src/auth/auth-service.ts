@@ -8,6 +8,7 @@ import {
 } from '../types/api.js';
 import { AuthError } from '../utils/errors.js';
 import { PromptEngine } from '../utils/prompt-engine.js';
+import { createSpinner, Spinner } from '../utils/formatter.js';
 
 export interface LoginResult {
   credential: OrgCredential;
@@ -81,8 +82,7 @@ export class AuthService {
   ): Promise<OrgCredential> {
     const startTime = Date.now();
     const noAuth: AuthMode = { type: 'none' };
-    const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
-    let frameIdx = 0;
+    const spinner = createSpinner('Waiting for email verification');
 
     while (Date.now() - startTime < POLL_TIMEOUT_MS) {
       const result = await this.apiClient.get<MagicLinkStatusResponse>(
@@ -92,7 +92,7 @@ export class AuthService {
       );
 
       if (!result.success) {
-        process.stdout.write('\r\x1b[K');
+        spinner.stop();
         if (result.errorCode === 1101) {
           throw new AuthError('Magic link expired', 'Please run agenzo-token-cli login again');
         }
@@ -105,7 +105,7 @@ export class AuthService {
       const data = result.data;
 
       if (data.status === 'CONSUMED') {
-        process.stdout.write('\r\x1b[K');
+        spinner.stop();
         const raw = data as unknown as Record<string, unknown>;
         const org = raw.organization as Record<string, unknown> | undefined;
 
@@ -136,18 +136,14 @@ export class AuthService {
       }
 
       if (data.status === 'EXPIRED') {
-        process.stdout.write('\r\x1b[K');
+        spinner.stop();
         throw new AuthError('Magic link expired', 'Please run agenzo-token-cli login again');
       }
-
-      // PENDING — animate spinner
-      process.stdout.write(`\r${frames[frameIdx]} Waiting for email verification`);
-      frameIdx = (frameIdx + 1) % frames.length;
 
       await this.sleep(POLL_INTERVAL_MS);
     }
 
-    process.stdout.write('\r\x1b[K');
+    spinner.stop();
     throw new AuthError('Login timed out (10 minutes)', 'Please run agenzo-token-cli login again');
   }
 
