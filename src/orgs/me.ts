@@ -26,8 +26,8 @@ export function registerMeCommand(
             ['Name', result.data.name],
             ['Email', result.data.email],
             ['Status', result.data.status],
-            ['Created', result.data.created_at],
-            ['Updated', result.data.updated_at],
+            ['Created', Formatter.formatTime(result.data.created_at)],
+            ['Updated', Formatter.formatTime(result.data.updated_at)],
           ]),
         );
       } else {

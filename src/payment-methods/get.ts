@@ -32,7 +32,7 @@ export function registerGetCommand(
         if (pm.brand) entries.push(['Brand', pm.brand]);
         if (pm.first6) entries.push(['First 6', pm.first6]);
         if (pm.last4) entries.push(['Last 4', pm.last4]);
-        entries.push(['Created', pm.created_at]);
+        entries.push(['Created', Formatter.formatTime(pm.created_at)]);
         console.log(Formatter.keyValue(entries));
       } else {
         console.error(

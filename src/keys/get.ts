@@ -27,8 +27,8 @@ export function registerGetCommand(
             ['Developer ID', k.developer_id],
             ['Name', k.name],
             ['Status', k.status],
-            ['Last Used', k.last_used_at ?? 'Never'],
-            ['Created', k.created_at],
+            ['Last Used', k.last_used_at ? Formatter.formatTime(k.last_used_at) : 'Never'],
+            ['Created', Formatter.formatTime(k.created_at)],
           ]),
         );
       } else {

@@ -122,4 +122,25 @@ export class Formatter {
     }
     return key.slice(0, prefixLength) + '*'.repeat(key.length - prefixLength);
   }
+
+  /**
+   * Format ISO 8601 timestamp to local timezone display.
+   * Automatically uses the user's system timezone.
+   * e.g. "2026-05-07T03:24:53+00:00" → "2026-05-07 11:24:53" (in CST)
+   *      "2026-05-07T03:24:53+00:00" → "2026-05-06 20:24:53" (in PDT)
+   * Returns the original string if parsing fails or input is empty.
+   */
+  static formatTime(iso: string | null | undefined): string {
+    if (!iso) return '';
+    const date = new Date(iso);
+    if (isNaN(date.getTime())) return iso;
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const y = date.getFullYear();
+    const m = pad(date.getMonth() + 1);
+    const d = pad(date.getDate());
+    const h = pad(date.getHours());
+    const min = pad(date.getMinutes());
+    const s = pad(date.getSeconds());
+    return `${y}-${m}-${d} ${h}:${min}:${s}`;
+  }
 }

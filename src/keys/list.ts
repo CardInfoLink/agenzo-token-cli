@@ -37,7 +37,7 @@ export function registerListCommand(
           k.developer_id,
           k.name,
           k.status,
-          k.last_used_at ?? 'Never',
+          k.last_used_at ? Formatter.formatTime(k.last_used_at) : 'Never',
         ]);
         console.log(Formatter.table(headers, rows));
       } else {

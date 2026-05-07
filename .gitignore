@@ -30,3 +30,7 @@ coverage/
 
 # Kiro specs (development only)
 .kiro/
+
+# Local E2E test script (contains personal email / card details)
+scripts/test-commands.sh
+
