@@ -165,6 +165,14 @@ Cards without support will get: `This card does not support Network Token.`
 
 VCN and X402 require a `gateway_token` in `evo_data`. If missing (3DS not completed properly), the error is: `This card does not support VCN/X402. Gateway token is missing.`
 
+### VCN Server-Side Feature Switch
+
+Before running any VCN-specific prompts, the CLI checks `GET /features/vcn` to see if VCN is enabled on the server. If disabled, the CLI exits with the server-provided message (no `errorCode`) and no card/amount inputs are collected.
+
+When this happens, DO NOT retry `payment-tokens create --type vcn` with different parameters — the block is global, not parameter-dependent. Instead, suggest the user switch to `--type network-token` or `--type x402` if their use case allows.
+
+Network Token and X402 are NOT gated by this switch.
+
 ### Revoke Behavior
 
 | Card Brand | Revoke Action |
