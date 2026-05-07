@@ -73,6 +73,7 @@ function formatPaymentToken(data: Record<string, unknown>): void {
         ['Token ID', id],
         ['Type', 'X402'],
         ['Status', status],
+        ['From Address', String(x402.from_address ?? '-')],
         ['Pay To', String(x402.pay_to ?? '-')],
         ['Amount', String(x402.amount ?? '-')],
         ['Nonce', String(x402.nonce ?? '-')],
