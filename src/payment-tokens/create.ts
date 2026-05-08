@@ -11,6 +11,38 @@ function calcFeeCents(amountCents: number): number {
   return Math.max(1, Math.round(amountCents * 0.05));
 }
 
+/** Default fee used when the server endpoint is unreachable or returns
+ * an unexpected payload. Must match the backend default so the confirm
+ * prompt stays coherent in offline/sandbox scenarios. */
+const DEFAULT_NT_FEE_CENTS = 500;
+
+/** Read the current Network Token flat fee from the server.
+ *
+ * Tolerant on purpose — a stale/unreachable backend must not break the
+ * confirm flow. Falls back to DEFAULT_NT_FEE_CENTS on any failure.
+ */
+async function fetchNetworkTokenFeeCents(
+  apiClient: ApiClient,
+  apiKey: string,
+): Promise<number> {
+  try {
+    const result = await apiClient.get<{ fee_cents: number; currency: string }>(
+      '/config/network-token-fee',
+      { type: 'api-key', key: apiKey },
+    );
+    if (!result.success) {
+      return DEFAULT_NT_FEE_CENTS;
+    }
+    const fee = Number(result.data?.fee_cents);
+    if (!Number.isFinite(fee) || fee < 0) {
+      return DEFAULT_NT_FEE_CENTS;
+    }
+    return Math.round(fee);
+  } catch {
+    return DEFAULT_NT_FEE_CENTS;
+  }
+}
+
 /** Format card display: first6****last4 Brand */
 function formatCardLabel(pm: PaymentMethod): string {
   const first6 = pm.first6 ?? '??????';
@@ -253,7 +285,12 @@ export function registerCreateCommand(
       }
 
       if (!skipConfirm && apiType === 'network_token') {
-        console.log(Formatter.status('warning', 'A flat $5.00 service fee applies to this Network Token transaction.'));
+        const feeCents = await fetchNetworkTokenFeeCents(deps.apiClient, apiKey);
+        const feeDisplay = '$' + (feeCents / 100).toFixed(2);
+        console.log(Formatter.status(
+          'warning',
+          `A flat ${feeDisplay} service fee applies to this Network Token transaction.`,
+        ));
         const confirmed = await confirm({
           message: 'Proceed?',
           default: true,

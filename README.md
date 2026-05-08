@@ -37,6 +37,17 @@ npm install -g agenzo-token-cli
 
 **Requirements**: Node.js 18+
 
+### Version compatibility
+
+The server advertises the minimum required CLI version via the `X-CLI-Min-Version` response header. If your installed CLI is below that minimum, any command refuses to run and exits with code `2`:
+
+```
+✗ CLI 1.2.0 is below the required minimum 1.3.0.
+ℹ Upgrade: npm install -g agenzo-token-cli@latest
+```
+
+Run the upgrade command and retry. The floor is controlled server-side (`AGENT_PAY_CLI_MIN_VERSION` env var), so raising it does not require a CLI release.
+
 ## AI Agent Skill
 
 This CLI ships with a structured [SKILL.md](SKILL.md) that AI Agents can use to understand and operate all payment flows. The skill covers:

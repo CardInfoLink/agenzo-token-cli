@@ -65,3 +65,22 @@ export class ValidationError extends CliError {
     super(message);
   }
 }
+
+/**
+ * CLI version is below the server-advertised minimum. Thrown from the API
+ * client before the response body is parsed; handled by the top-level error
+ * handler which exits with a non-zero code so CI/automation can detect it.
+ */
+export class UpgradeRequiredError extends CliError {
+  readonly code = 'UPGRADE_REQUIRED';
+  constructor(
+    public readonly currentVersion: string,
+    public readonly minVersion: string,
+    public readonly upgradeCommand: string,
+  ) {
+    super(
+      `agenzo-token-cli ${currentVersion} is out of date — the server requires ` +
+        `${minVersion} or newer. To upgrade, run: ${upgradeCommand}`,
+    );
+  }
+}

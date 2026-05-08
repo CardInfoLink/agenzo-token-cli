@@ -137,13 +137,11 @@ Available flags:
 
 ### Pre-authorization Confirmation
 
-VCN and X402 involve pre-authorization (fund freeze):
+VCN, X402, and Network Token all involve pre-authorization (fund freeze) on a gateway token, followed by capture or cancel:
 - VCN: Frozen amount = amount + service fee (5%). Displayed as concrete dollar values.
 - X402: Amount converted from USDC smallest units to USD (1 USD = 1,000,000 units). Service fee 5%.
-- Network Token: Flat $5.00 service fee (no pre-authorization freeze).
+- Network Token: Flat service fee charged via gateway token. The amount is fetched at runtime from `GET /config/network-token-fee` (default $5.00 if the endpoint is unreachable).
 - Use `--yes` global flag to skip confirmation (always use this when executing for the user).
-
-Network Token does not involve pre-authorization.
 
 ## Token Types
 
@@ -257,6 +255,7 @@ agenzo-token-cli config show                            # Show current config
 | `Invitation code required` (code `1103`) | Registration requires an invitation code | Ask the user for their invitation code at the interactive prompt |
 | `Internal Server Error` | Unhandled backend exception | Check backend logs |
 | `Connection failed` | Backend not running or wrong host | Check `config show` for API host |
+| `CLI X.Y.Z is below the required minimum A.B.C` (exit code 2) | Server raised the minimum CLI version | Run `npm install -g agenzo-token-cli@latest` and retry. Do NOT retry the same command without upgrading — it will keep failing. |
 
 ## Important Notes
 

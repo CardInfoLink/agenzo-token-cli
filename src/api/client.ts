@@ -1,4 +1,5 @@
-import { NetworkError } from '../utils/errors.js';
+import { NetworkError, UpgradeRequiredError } from '../utils/errors.js';
+import { getCurrentVersion, isBelow, UPGRADE_COMMAND } from '../utils/version.js';
 
 export interface ApiClientConfig {
   baseUrl: string;
@@ -36,7 +37,9 @@ export class ApiClient {
   }
 
   private buildHeaders(auth: AuthMode): Record<string, string> {
-    const headers: Record<string, string> = {};
+    const headers: Record<string, string> = {
+      'User-Agent': `agenzo-token-cli/${getCurrentVersion()}`,
+    };
     if (auth.type === 'bearer') {
       headers['Authorization'] = `Bearer ${auth.token}`;
     } else if (auth.type === 'api-key') {
@@ -89,6 +92,11 @@ export class ApiClient {
         ...init,
         signal: controller.signal,
       });
+
+      // Enforce server-advertised CLI version floor before doing any work
+      // on the response. Throws UpgradeRequiredError which is rendered and
+      // exits at the top level (src/index.ts).
+      this.enforceMinVersion(response.headers.get('x-cli-min-version'));
 
       // Handle non-JSON responses (e.g. 500 Internal Server Error returns plain text)
       const contentType = response.headers.get('content-type') ?? '';
@@ -153,12 +161,31 @@ export class ApiClient {
         statusCode: response.status,
       };
     } catch (error) {
+      // UpgradeRequiredError is a CliError and must propagate untouched to the
+      // top-level handler; don't rewrap it as a NetworkError.
+      if (error instanceof UpgradeRequiredError) {
+        throw error;
+      }
       if (error instanceof DOMException && error.name === 'AbortError') {
         throw new NetworkError(url, this.timeout);
       }
       throw new NetworkError(url, undefined, error instanceof Error ? error : undefined);
     } finally {
       clearTimeout(timeoutId);
+    }
+  }
+
+  /**
+   * Validate that the running CLI meets the server-advertised minimum.
+   * Missing or empty header → skip (backward compat with servers that don't
+   * advertise yet, and clients hitting legacy proxies).
+   */
+  private enforceMinVersion(headerValue: string | null): void {
+    const minVersion = headerValue?.trim();
+    if (!minVersion) return;
+    const current = getCurrentVersion();
+    if (isBelow(current, minVersion)) {
+      throw new UpgradeRequiredError(current, minVersion, UPGRADE_COMMAND);
     }
   }
 

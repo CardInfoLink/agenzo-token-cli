@@ -5,7 +5,8 @@ import { CredentialStore } from './config/credential-store.js';
 import { KeyStore } from './config/key-store.js';
 import { AuthService } from './auth/auth-service.js';
 import { Formatter } from './utils/formatter.js';
-import { CliError, AuthError } from './utils/errors.js';
+import { CliError, AuthError, UpgradeRequiredError } from './utils/errors.js';
+import { getCurrentVersion } from './utils/version.js';
 
 // Auth commands
 import { registerLoginCommand } from './auth/login.js';
@@ -68,7 +69,7 @@ async function main() {
   const program = new Command();
   program
     .name('agenzo-token-cli')
-    .version('1.2.0')
+    .version(getCurrentVersion())
     .description('Agent Payment API CLI')
     .option('--verbose', 'Show verbose logs')
     .option('--yes', 'Skip confirmation prompts (for automation/AI Agents)');
@@ -122,6 +123,19 @@ async function main() {
 
 // Global error handler
 main().catch((error) => {
+  if (error instanceof UpgradeRequiredError) {
+    console.error(
+      Formatter.status(
+        'error',
+        `agenzo-token-cli ${error.currentVersion} is out of date — the server requires ${error.minVersion} or newer.`,
+      ),
+    );
+    console.error(
+      Formatter.status('info', `To upgrade, run: ${error.upgradeCommand}`),
+    );
+    // Exit 2 distinguishes "you must upgrade" from generic failures (exit 1).
+    process.exit(2);
+  }
   if (error instanceof CliError) {
     console.error(Formatter.status('error', error.message));
     if (error instanceof AuthError) {

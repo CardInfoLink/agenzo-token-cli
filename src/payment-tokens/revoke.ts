@@ -28,7 +28,7 @@ export function registerRevokeCommand(
           Formatter.keyValue([
             ['Token ID', result.data.id],
             ['Status', result.data.status],
-            ['Revoked At', result.data.revoked_at],
+            ['Revoked At', Formatter.formatTime(result.data.revoked_at)],
           ]),
         );
       } else {
