@@ -23,9 +23,15 @@ export function registerRevokeCommand(
       );
 
       if (result.success) {
-        console.log(Formatter.status('success', 'Payment token revoked'));
+        const isDeferred = result.data.status === 'ACTIVE' && result.data.expires_at;
+        const statusMsg = isDeferred
+          ? 'Revoke scheduled (cryptogram will auto-expire)'
+          : 'Payment token revoked';
+        console.log(Formatter.status('success', statusMsg));
+
         const entries: [string, string][] = [
           ['Token ID', result.data.id],
+          ['Status', result.data.status],
         ];
         if (result.data.expires_at) {
           entries.push([
@@ -34,11 +40,12 @@ export function registerRevokeCommand(
               ? `${Formatter.formatTime(result.data.expires_at)} (${result.data.message})`
               : Formatter.formatTime(result.data.expires_at),
           ]);
-        } else {
+        }
+        if (result.data.revoked_at) {
           entries.push(['Revoked At', Formatter.formatTime(result.data.revoked_at)]);
-          if (result.data.message) {
-            entries.push(['Note', result.data.message]);
-          }
+        }
+        if (result.data.message && !result.data.expires_at) {
+          entries.push(['Note', result.data.message]);
         }
         console.log(Formatter.keyValue(entries));
       } else {
