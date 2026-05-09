@@ -140,5 +140,6 @@ export interface RevokeResult {
   id: string;
   status: string;
   revoked_at: string;
+  expires_at?: string;
   message?: string;
 }

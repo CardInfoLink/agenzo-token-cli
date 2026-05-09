@@ -79,7 +79,7 @@ async function main() {
   registerLogoutCommand(program, { authService });
 
   // Config command
-  registerConfigCommand(program, { configManager });
+  registerConfigCommand(program, { configManager, credentialStore });
 
   // Orgs command group
   const orgsCmd = program.command('orgs').description('Organization management');
