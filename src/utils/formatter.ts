@@ -141,6 +141,11 @@ export class Formatter {
     const h = pad(date.getHours());
     const min = pad(date.getMinutes());
     const s = pad(date.getSeconds());
-    return `${y}-${m}-${d} ${h}:${min}:${s}`;
+    const offsetMin = -date.getTimezoneOffset();
+    const sign = offsetMin >= 0 ? '+' : '-';
+    const absOffset = Math.abs(offsetMin);
+    const tzH = pad(Math.floor(absOffset / 60));
+    const tzM = pad(absOffset % 60);
+    return `${y}-${m}-${d} ${h}:${min}:${s} (UTC${sign}${tzH}:${tzM})`;
   }
 }

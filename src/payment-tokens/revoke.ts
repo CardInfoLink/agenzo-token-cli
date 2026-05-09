@@ -24,13 +24,14 @@ export function registerRevokeCommand(
 
       if (result.success) {
         console.log(Formatter.status('success', 'Payment token revoked'));
-        console.log(
-          Formatter.keyValue([
-            ['Token ID', result.data.id],
-            ['Status', result.data.status],
-            ['Revoked At', Formatter.formatTime(result.data.revoked_at)],
-          ]),
-        );
+        const entries: [string, string][] = [
+          ['Token ID', result.data.id],
+          ['Status', result.data.status],
+          ['Revoked At', result.data.message
+            ? `${Formatter.formatTime(result.data.revoked_at)} (${result.data.message})`
+            : Formatter.formatTime(result.data.revoked_at)],
+        ];
+        console.log(Formatter.keyValue(entries));
       } else {
         console.error(
           Formatter.status('error', result.errorMessage),

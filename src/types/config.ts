@@ -13,6 +13,7 @@ export interface OrgCredential {
   refresh_token: string;
   access_token_expires_at: number; // Unix timestamp (seconds)
   refresh_token_expires_at: number;
+  api_host?: string; // The host this credential was created against
 }
 
 export interface StoredApiKey {

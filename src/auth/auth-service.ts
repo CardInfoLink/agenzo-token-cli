@@ -161,6 +161,7 @@ export class AuthService {
           refresh_token: data.refresh_token!,
           access_token_expires_at: accessExpiresAt,
           refresh_token_expires_at: refreshExpiresAt,
+          api_host: (await this.configManager.getApiHost()),
         };
       }
 

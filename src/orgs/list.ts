@@ -13,14 +13,20 @@ export function registerListCommand(
     .action(async () => {
       const credentials = await deps.credentialStore.listAll();
       const activeOrg = await deps.configManager.getActiveOrg();
+      const currentHost = await deps.configManager.getApiHost();
 
-      if (credentials.length === 0) {
+      // Only show orgs that belong to the current api_host
+      const filtered = credentials.filter(
+        (cred) => cred.api_host === currentHost,
+      );
+
+      if (filtered.length === 0) {
         console.log(Formatter.status('info', 'No signed-in organizations'));
         return;
       }
 
       const headers = ['', 'Org ID', 'Org Name', 'Email'];
-      const rows = credentials.map((cred) => [
+      const rows = filtered.map((cred) => [
         cred.org_id === activeOrg ? '*' : '',
         cred.org_id,
         cred.org_name,

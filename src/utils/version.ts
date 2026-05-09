@@ -25,7 +25,7 @@ export const UPGRADE_COMMAND = 'npm install -g agenzo-token-cli@latest';
  * `package.json`'s `version` on every release so the reported version and
  * the User-Agent stay accurate even in the degraded path.
  */
-export const FALLBACK_VERSION = '1.3.0';
+export const FALLBACK_VERSION = '1.4.0';
 
 let cachedVersion: string | null = null;
 
