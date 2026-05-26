@@ -324,7 +324,6 @@ export function registerCreateCommand(
 
       const idempotencyKey = await PromptEngine.resolveInput(options.idempotencyKey, {
         message: 'Idempotency-Key:',
-        validate: (v) => v.trim().length > 0 || 'Idempotency-Key is required',
       });
       const result = await deps.apiClient.post<PaymentToken>(
         '/payment-tokens/create',
