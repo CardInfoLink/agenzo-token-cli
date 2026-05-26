@@ -158,6 +158,7 @@ export function registerCreateCommand(
     .option('--network <network>', 'Network (X402)')
     .option('--deadline <deadline>', 'Deadline Unix timestamp (X402)')
     .option('--external-tx-id <id>', 'External transaction ID (auto-generated if omitted)')
+    .option('--idempotency-key <key>', 'Idempotency-Key header value (required, prompts if omitted)')
     .action(async (options, command) => {
       const apiKey = await PromptEngine.resolveInput(options.apiKey, {
         message: 'API Key:',
@@ -321,7 +322,10 @@ export function registerCreateCommand(
 
       console.log(Formatter.status('loading', 'Creating payment token'));
 
-      const idempotencyKey = randomUUID();
+      const idempotencyKey = await PromptEngine.resolveInput(options.idempotencyKey, {
+        message: 'Idempotency-Key:',
+        validate: (v) => v.trim().length > 0 || 'Idempotency-Key is required',
+      });
       const result = await deps.apiClient.post<PaymentToken>(
         '/payment-tokens/create',
         { type: 'api-key', key: apiKey },

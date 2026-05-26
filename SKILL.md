@@ -88,9 +88,9 @@ agenzo-token-cli payment-methods add --api-key sk_prod_xxx --email user@example.
 
 ```bash
 # Full-flag mode
-agenzo-token-cli --yes payment-tokens create --type vcn --api-key sk_prod_xxx --card 520473... --member mem_001 --amount 30
+agenzo-token-cli --yes payment-tokens create --type vcn --api-key sk_prod_xxx --card 520473... --member mem_001 --amount 30 --idempotency-key idem_001
 
-# Minimal mode (interactive prompts fill the rest)
+# Minimal mode (interactive prompts fill the rest, including Idempotency-Key)
 agenzo-token-cli payment-tokens create --type vcn
 ```
 
@@ -105,6 +105,7 @@ agenzo-token-cli payment-tokens create --type vcn
 | `--nonce` | MUST ask for X402. |
 | `--network` | MUST ask for X402. |
 | `--deadline` | MUST ask for X402. |
+| `--idempotency-key` | MUST be supplied by the caller. The CLI does NOT auto-generate one. Provide a unique value per logical request (e.g. `idem_<uuid>` or your own deduplication key). If omitted, the CLI prompts interactively. |
 
 **Parameters to reuse from previous steps (do not ask again):**
 - `--api-key`: from Step 3
@@ -134,6 +135,7 @@ Available flags:
 | `--network <network>` | Chain network (e.g. `base`) | X402 |
 | `--deadline <timestamp>` | Unix timestamp deadline | X402 |
 | `--external-tx-id <id>` | External transaction ID (auto-generated if omitted) | Optional |
+| `--idempotency-key <key>` | Idempotency-Key header value. Required — must be supplied by the caller. CLI prompts interactively if omitted; it does NOT auto-generate. Sent as the `Idempotency-Key` HTTP header, never in the body. | All types |
 
 ### Pre-authorization Confirmation
 
@@ -207,7 +209,7 @@ agenzo-token-cli developers update <developer_id> --email new@example.com
 agenzo-token-cli keys create --developer-id <dev_id> --key-name "Prod Key"
 agenzo-token-cli keys list --developer-id <dev_id>
 agenzo-token-cli keys get <key_id>
-agenzo-token-cli keys rotate <key_id>     # Generate new key value (old one invalidated)
+agenzo-token-cli keys rotate <key_id> --idempotency-key <key>     # Generate new key value (old one invalidated). --idempotency-key MUST be supplied by the caller; CLI prompts if omitted.
 agenzo-token-cli keys disable <key_id>    # Permanently disable key
 ```
 
@@ -226,9 +228,10 @@ agenzo-token-cli payment-methods disable <pm_id> --api-key <key>
 agenzo-token-cli payment-tokens create --api-key <key>
 
 # Full-flag mode (for AI Agents, always use --yes)
-agenzo-token-cli --yes payment-tokens create --type vcn --api-key <key> --card 2223001870064586 --amount 30
-agenzo-token-cli --yes payment-tokens create --type network-token --api-key <key> --card 2223001870064586
-agenzo-token-cli --yes payment-tokens create --type x402 --api-key <key> --payment-method-id <pm_id> --pay-to 0xABC... --amount 1000000 --nonce abc123 --network base_sepolia --deadline 1777457396
+# --idempotency-key is REQUIRED. The CLI never auto-generates one — Agents must pass a unique value per logical request.
+agenzo-token-cli --yes payment-tokens create --type vcn --api-key <key> --card 2223001870064586 --amount 30 --idempotency-key idem_001
+agenzo-token-cli --yes payment-tokens create --type network-token --api-key <key> --card 2223001870064586 --idempotency-key idem_002
+agenzo-token-cli --yes payment-tokens create --type x402 --api-key <key> --payment-method-id <pm_id> --pay-to 0xABC... --amount 1000000 --nonce abc123 --network base_sepolia --deadline 1777457396 --idempotency-key idem_003
 
 # Query and revoke
 agenzo-token-cli payment-tokens list --api-key <key>
@@ -264,3 +267,4 @@ agenzo-token-cli config show                            # Show current config
 - **One-time tokens**: Payment tokens are single-use. Create a new one for each transaction.
 - **Duplicate binding**: Same card under same developer overwrites the old record.
 - **API path prefix**: All paths are prefixed with `/api/v3/agent-pay/`, handled internally.
+- **Idempotency-Key**: `payment-tokens create` and `keys rotate` both require `--idempotency-key`. The CLI never generates this value automatically — the caller must supply it. It is sent as the `Idempotency-Key` HTTP header (not in the body). Use the same value to safely retry the same logical request; use a fresh value for each new request.

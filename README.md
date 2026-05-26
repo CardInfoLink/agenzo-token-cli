@@ -80,12 +80,13 @@ agenzo-token-cli payment-methods add --api-key sk_prod_xxx --email user@example.
 agenzo-token-cli payment-methods add --api-key sk_prod_xxx --email user@example.com --card-number 2223001870064586 --expiry 1226 --cvv 935
 
 # 5. Create a payment token (interactive card selection)
-agenzo-token-cli payment-tokens create --type vcn --api-key sk_prod_xxx
-agenzo-token-cli payment-tokens create --type network-token --api-key sk_prod_xxx
-agenzo-token-cli payment-tokens create --type x402 --api-key sk_prod_xxx
+# --idempotency-key is required and must be supplied by the caller; the CLI prompts if omitted.
+agenzo-token-cli payment-tokens create --type vcn --api-key sk_prod_xxx --idempotency-key idem_001
+agenzo-token-cli payment-tokens create --type network-token --api-key sk_prod_xxx --idempotency-key idem_002
+agenzo-token-cli payment-tokens create --type x402 --api-key sk_prod_xxx --idempotency-key idem_003
 
 # Or specify card directly (matches by last 4 digits, skips selection)
-agenzo-token-cli payment-tokens create --type network-token --api-key sk_prod_xxx --card 5204731620064587
+agenzo-token-cli payment-tokens create --type network-token --api-key sk_prod_xxx --card 5204731620064587 --idempotency-key idem_004
 ```
 
 ### For AI Agents
@@ -135,7 +136,7 @@ agenzo-token-cli developers update <developer_id> --email new@example.com
 agenzo-token-cli keys create --developer-id <dev_id> --key-name "Prod Key"
 agenzo-token-cli keys list --developer-id <dev_id>
 agenzo-token-cli keys get <key_id>
-agenzo-token-cli keys rotate <key_id>     # Generate new key value (old one invalidated)
+agenzo-token-cli keys rotate <key_id> --idempotency-key <key>     # Generate new key value (old one invalidated)
 agenzo-token-cli keys disable <key_id>    # Permanently disable key
 ```
 
@@ -154,9 +155,10 @@ agenzo-token-cli payment-methods disable <pm_id> --api-key <key>
 agenzo-token-cli payment-tokens create --api-key <key>
 
 # Full-flag mode (for automation / AI Agents)
-agenzo-token-cli --yes payment-tokens create --type vcn --api-key <key> --card 2223001870064586 --amount 30
-agenzo-token-cli --yes payment-tokens create --type network-token --api-key <key> --card 2223001870064586
-agenzo-token-cli --yes payment-tokens create --type x402 --api-key <key> --payment-method-id <pm_id> --pay-to 0xABC... --amount 1000000 --nonce abc123 --network base_sepolia --deadline 1777457396
+# --idempotency-key is required and must be supplied by the caller; the CLI prompts if omitted (it never auto-generates one).
+agenzo-token-cli --yes payment-tokens create --type vcn --api-key <key> --card 2223001870064586 --amount 30 --idempotency-key idem_001
+agenzo-token-cli --yes payment-tokens create --type network-token --api-key <key> --card 2223001870064586 --idempotency-key idem_002
+agenzo-token-cli --yes payment-tokens create --type x402 --api-key <key> --payment-method-id <pm_id> --pay-to 0xABC... --amount 1000000 --nonce abc123 --network base_sepolia --deadline 1777457396 --idempotency-key idem_003
 
 # Query and revoke
 agenzo-token-cli payment-tokens list --api-key <key>
