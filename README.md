@@ -136,7 +136,7 @@ agenzo-token-cli developers update <developer_id> --email new@example.com
 agenzo-token-cli keys create --developer-id <dev_id> --key-name "Prod Key"
 agenzo-token-cli keys list --developer-id <dev_id>
 agenzo-token-cli keys get <key_id>
-agenzo-token-cli keys rotate <key_id> --idempotency-key <key>     # Generate new key value (old one invalidated)
+agenzo-token-cli keys rotate <key_id>     # Generate new key value (old one invalidated)
 agenzo-token-cli keys disable <key_id>    # Permanently disable key
 ```
 

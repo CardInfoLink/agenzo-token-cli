@@ -4,7 +4,6 @@ import { AuthService } from '../auth/auth-service.js';
 import { KeyStore } from '../config/key-store.js';
 import { ConfigManager } from '../config/config-manager.js';
 import { Formatter } from '../utils/formatter.js';
-import { PromptEngine } from '../utils/prompt-engine.js';
 import { ApiKey } from '../types/api.js';
 
 export function registerRotateCommand(
@@ -19,18 +18,11 @@ export function registerRotateCommand(
   parent
     .command('rotate <key_id>')
     .description('Rotate API Key')
-    .option('--idempotency-key <key>', 'Idempotency-Key header value (required)')
-    .action(async (keyId: string, options: { idempotencyKey?: string }) => {
-      const idempotencyKey = await PromptEngine.resolveInput(options.idempotencyKey, {
-        message: 'Idempotency-Key:',
-      });
-
+    .action(async (keyId: string) => {
       const result = await deps.authService.executeWithAuth((token) =>
         deps.apiClient.post<ApiKey>(
           `/keys/${keyId}/rotate`,
           { type: 'bearer', token },
-          undefined,
-          { 'Idempotency-Key': idempotencyKey },
         ),
       );
 

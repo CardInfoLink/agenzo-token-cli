@@ -209,7 +209,7 @@ agenzo-token-cli developers update <developer_id> --email new@example.com
 agenzo-token-cli keys create --developer-id <dev_id> --key-name "Prod Key"
 agenzo-token-cli keys list --developer-id <dev_id>
 agenzo-token-cli keys get <key_id>
-agenzo-token-cli keys rotate <key_id> --idempotency-key <key>     # Generate new key value (old one invalidated). --idempotency-key MUST be supplied by the caller; CLI prompts if omitted.
+agenzo-token-cli keys rotate <key_id>     # Generate new key value (old one invalidated)
 agenzo-token-cli keys disable <key_id>    # Permanently disable key
 ```
 
@@ -267,4 +267,4 @@ agenzo-token-cli config show                            # Show current config
 - **One-time tokens**: Payment tokens are single-use. Create a new one for each transaction.
 - **Duplicate binding**: Same card under same developer overwrites the old record.
 - **API path prefix**: All paths are prefixed with `/api/v3/agent-pay/`, handled internally.
-- **Idempotency-Key**: `payment-tokens create` and `keys rotate` both require `--idempotency-key`. The CLI never generates this value automatically — the caller must supply it. It is sent as the `Idempotency-Key` HTTP header (not in the body). Use the same value to safely retry the same logical request; use a fresh value for each new request.
+- **Idempotency-Key**: `payment-tokens create` requires `--idempotency-key`. The CLI never generates this value automatically — the caller must supply it. It is sent as the `Idempotency-Key` HTTP header (not in the body). Use the same value to safely retry the same logical request; use a fresh value for each new request.
