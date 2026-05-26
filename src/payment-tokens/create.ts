@@ -1,5 +1,4 @@
 import { Command } from 'commander';
-import { randomUUID } from 'node:crypto';
 import { select, confirm, input } from '@inquirer/prompts';
 import { ApiClient } from '../api/client.js';
 import { PaymentMethod, PaymentToken } from '../types/api.js';
@@ -157,7 +156,7 @@ export function registerCreateCommand(
     .option('--nonce <nonce>', 'Nonce (X402)')
     .option('--network <network>', 'Network (X402)')
     .option('--deadline <deadline>', 'Deadline Unix timestamp (X402)')
-    .option('--external-tx-id <id>', 'External transaction ID (auto-generated if omitted)')
+    .option('--external-tx-id <id>', 'External transaction ID (optional)')
     .option('--idempotency-key <key>', 'Idempotency-Key header value (required, prompts if omitted)')
     .action(async (options, command) => {
       const apiKey = await PromptEngine.resolveInput(options.apiKey, {
@@ -195,13 +194,13 @@ export function registerCreateCommand(
       };
       const apiType = typeMap[cliType] ?? cliType;
 
-      const externalTxId = options.externalTxId ?? randomUUID();
-
       const body: Record<string, unknown> = {
         type: apiType,
         payment_method_id: paymentMethodId,
-        external_transaction_id: externalTxId,
       };
+      if (options.externalTxId) {
+        body.external_transaction_id = options.externalTxId;
+      }
 
       if (apiType === 'vcn') {
         // Gate the VCN interactive flow on the server-side feature switch.

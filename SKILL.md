@@ -134,7 +134,7 @@ Available flags:
 | `--nonce <nonce>` | Nonce value | X402 |
 | `--network <network>` | Chain network (e.g. `base`) | X402 |
 | `--deadline <timestamp>` | Unix timestamp deadline | X402 |
-| `--external-tx-id <id>` | External transaction ID (auto-generated if omitted) | Optional |
+| `--external-tx-id <id>` | External transaction ID. Sent only when supplied by the caller; the CLI does not auto-generate one. | Optional |
 | `--idempotency-key <key>` | Idempotency-Key header value. Required — must be supplied by the caller. CLI prompts interactively if omitted; it does NOT auto-generate. Sent as the `Idempotency-Key` HTTP header, never in the body. | All types |
 
 ### Pre-authorization Confirmation
