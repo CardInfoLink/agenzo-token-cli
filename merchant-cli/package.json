@@ -1,0 +1,37 @@
+{
+  "name": "agenzo-merchant-cli",
+  "version": "0.1.0",
+  "description": "CLI tool for AI Agents to order rides and query merchant services",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "agenzo-merchant-cli": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "SKILL.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint src",
+    "prepublishOnly": "npm run build"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@inquirer/prompts": "^8.4.2",
+    "commander": "^14.0.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@types/node": "^25.6.0",
+    "eslint": "^9.0.0",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.0.0"
+  }
+}
