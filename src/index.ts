@@ -5,7 +5,14 @@ import { CredentialStore } from './config/credential-store.js';
 import { KeyStore } from './config/key-store.js';
 import { AuthService } from './auth/auth-service.js';
 import { Formatter } from './utils/formatter.js';
-import { CliError, AuthError, UpgradeRequiredError } from './utils/errors.js';
+import {
+  CliError,
+  AuthError,
+  UserCancelError,
+  toErrorEnvelope,
+} from './utils/errors.js';
+import { resolveFormat, type OutputFormat } from './utils/output.js';
+import { exitCodeFor } from './utils/exit.js';
 import { getCurrentVersion } from './utils/version.js';
 
 // Auth commands
@@ -16,7 +23,7 @@ import { registerLogoutCommand } from './auth/logout.js';
 import { registerConfigCommand } from './config/set.js';
 
 // Orgs commands
-import { registerMeCommand } from './orgs/me.js';
+import { registerMeCommand } from './orgs/get.js';
 import { registerUpdateCommand as registerOrgUpdateCommand } from './orgs/update.js';
 import { registerListCommand as registerOrgListCommand } from './orgs/list.js';
 import { registerSwitchCommand } from './orgs/switch.js';
@@ -34,17 +41,13 @@ import { registerGetCommand as registerKeyGetCommand } from './keys/get.js';
 import { registerRotateCommand } from './keys/rotate.js';
 import { registerDisableCommand as registerKeyDisableCommand } from './keys/disable.js';
 
-// Payment methods commands
-import { registerAddCommand } from './payment-methods/add.js';
-import { registerListCommand as registerPmListCommand } from './payment-methods/list.js';
-import { registerGetCommand as registerPmGetCommand } from './payment-methods/get.js';
-import { registerDisableCommand as registerPmDisableCommand } from './payment-methods/disable.js';
+// Accounts commands
+import { registerGetCommand as registerAccountGetCommand } from './accounts/get.js';
 
-// Payment tokens commands
-import { registerCreateCommand as registerPtCreateCommand } from './payment-tokens/create.js';
-import { registerListCommand as registerPtListCommand } from './payment-tokens/list.js';
-import { registerGetCommand as registerPtGetCommand } from './payment-tokens/get.js';
-import { registerRevokeCommand } from './payment-tokens/revoke.js';
+// Holds the parsed program so the top-level error handler can read the
+// resolved `--format` global flag. Assigned inside `main()` once the program
+// is constructed; may be undefined if an error is thrown before then.
+let programRef: Command | undefined;
 
 async function main() {
   // Instantiate shared infrastructure
@@ -61,22 +64,39 @@ async function main() {
 
   // Shared deps objects
   const controlPlaneDeps = { apiClient, authService, credentialStore, configManager };
-  const runtimePlaneDeps = { apiClient };
   const keysDeps = { apiClient, authService, keyStore, configManager };
   const orgsDeps = { credentialStore, configManager };
 
   // Create program
   const program = new Command();
+  programRef = program;
   program
-    .name('agenzo-token-cli')
+    .name('agenzo-admin-cli')
     .version(getCurrentVersion())
-    .description('Agent Payment API CLI')
+    .description(
+      'Agenzo control plane: login, organizations, developers, API keys, settlement accounts, and config',
+    )
     .option('--verbose', 'Show verbose logs')
-    .option('--yes', 'Skip confirmation prompts (for automation/AI Agents)');
+    .option('--yes', 'Skip confirmation prompts (for automation/AI Agents)')
+    .option(
+      '--format <format>',
+      'Output format: json | table (default: table; or set AGENZO_FORMAT)',
+    );
 
-  // Register top-level auth commands
-  registerLoginCommand(program, { authService });
-  registerLogoutCommand(program, { authService });
+  // Mirror the resolved global --format into AGENZO_FORMAT before any action
+  // runs, so code paths without direct format access (e.g. AuthService's
+  // auto re-login deep inside executeWithAuth) can resolve the active format
+  // and stay silent in json mode. resolveFormat already honors the flag; this
+  // just makes the flag value visible to env-based readers.
+  program.hook('preAction', (thisCommand) => {
+    const flag = thisCommand.opts().format as string | undefined;
+    process.env.AGENZO_FORMAT = resolveFormat(flag);
+  });
+
+  // Auth command group
+  const authCmd = program.command('auth').description('Authentication');
+  registerLoginCommand(authCmd, { authService });
+  registerLogoutCommand(authCmd, { authService });
 
   // Config command
   registerConfigCommand(program, { configManager, credentialStore });
@@ -103,52 +123,60 @@ async function main() {
   registerRotateCommand(keysCmd, keysDeps);
   registerKeyDisableCommand(keysCmd, controlPlaneDeps);
 
-  // Payment methods command group
-  const pmCmd = program.command('payment-methods').description('Payment method management');
-  registerAddCommand(pmCmd, runtimePlaneDeps);
-  registerPmListCommand(pmCmd, runtimePlaneDeps);
-  registerPmGetCommand(pmCmd, runtimePlaneDeps);
-  registerPmDisableCommand(pmCmd, runtimePlaneDeps);
-
-  // Payment tokens command group
-  const ptCmd = program.command('payment-tokens').description('Payment token management');
-  registerPtCreateCommand(ptCmd, runtimePlaneDeps);
-  registerPtListCommand(ptCmd, runtimePlaneDeps);
-  registerPtGetCommand(ptCmd, runtimePlaneDeps);
-  registerRevokeCommand(ptCmd, runtimePlaneDeps);
+  // Accounts command group
+  const accountsCmd = program.command('accounts').description('Settlement account management');
+  registerAccountGetCommand(accountsCmd, controlPlaneDeps);
 
   // Parse and execute
   await program.parseAsync(process.argv);
 }
 
-// Global error handler
-main().catch((error) => {
-  if (error instanceof UpgradeRequiredError) {
-    console.error(
-      Formatter.status(
-        'error',
-        `agenzo-token-cli ${error.currentVersion} is out of date — the server requires ${error.minVersion} or newer.`,
-      ),
-    );
-    console.error(
-      Formatter.status('info', `To upgrade, run: ${error.upgradeCommand}`),
-    );
-    // Exit 2 distinguishes "you must upgrade" from generic failures (exit 1).
-    process.exit(2);
-  }
-  if (error instanceof CliError) {
-    console.error(Formatter.status('error', error.message));
+/**
+ * Resolve the active output format for error reporting. Prefers the parsed
+ * global `--format` flag (available on `programRef` once the program is
+ * constructed); if an error was thrown before parsing, falls back to
+ * `resolveFormat(undefined)` (which consults `AGENZO_FORMAT`, else `table`).
+ */
+function resolveActiveFormat(): OutputFormat {
+  const flag = programRef?.opts().format as string | undefined;
+  return resolveFormat(flag);
+}
+
+/**
+ * Top-level failure path. Writes the error envelope to stderr in the resolved
+ * format and exits with the mapped code (1–5). stdout is left untouched so a
+ * partial machine payload is never emitted on failure.
+ *
+ * - `json`: a single `{ error: { code, message, http? } }` envelope.
+ * - `table`: `✗ <message>` plus, for `AuthError`, the suggestion line.
+ */
+function reportError(error: unknown): never {
+  const envelope = toErrorEnvelope(error);
+  const format = resolveActiveFormat();
+
+  if (format === 'json') {
+    console.error(JSON.stringify(envelope));
+  } else {
+    console.error(Formatter.status('error', envelope.error.message));
     if (error instanceof AuthError) {
       console.error(Formatter.status('info', error.suggestion));
     }
-  } else {
-    console.error(Formatter.status('error', 'An unexpected error occurred'));
-    console.error(
-      Formatter.status('info', 'Retry with --verbose flag for detailed logs'),
-    );
-    if (process.argv.includes('--verbose')) {
+    // Unknown (non-CliError) failures keep the --verbose raw-dump affordance.
+    if (!(error instanceof CliError) && process.argv.includes('--verbose')) {
       console.error(error);
     }
   }
-  process.exit(1);
+
+  // exitCodeFor owns the error-class → exit-code matrix, including
+  // UpgradeRequiredError → 2 and UserCancelError → 5.
+  process.exit(exitCodeFor(error));
+}
+
+// Ctrl+C / SIGINT maps to a user-cancel (exit 5) via the same envelope path.
+process.on('SIGINT', () => {
+  reportError(new UserCancelError());
 });
+
+// Global error handler. Normal completion exits 0 naturally (the mapper is
+// never consulted on success).
+main().catch(reportError);

@@ -1,11 +1,11 @@
 {
-  "name": "agenzo-token-cli",
-  "version": "1.6.3",
-  "description": "CLI tool for the Agent Payment API",
+  "name": "agenzo-admin-cli",
+  "version": "0.1.0",
+  "description": "Admin CLI for the Agenzo platform (login, orgs, developers, API keys)",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "agenzo-token-cli": "dist/index.js"
+    "agenzo-admin-cli": "dist/index.js"
   },
   "files": [
     "dist",
@@ -26,17 +26,13 @@
   "keywords": [
     "cli",
     "agent",
-    "payment",
-    "token",
+    "agenzo",
+    "admin",
+    "identity",
     "ai-agent",
-    "vcn",
-    "network-token",
-    "x402",
-    "3ds",
-    "fintech",
-    "tokenization",
-    "evo-payment",
-    "card-binding",
+    "organization",
+    "developer",
+    "api-key",
     "developer-tools"
   ],
   "author": "",

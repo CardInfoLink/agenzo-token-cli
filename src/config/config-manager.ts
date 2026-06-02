@@ -6,6 +6,7 @@ import { ConfigError } from '../utils/errors.js';
 
 const DEFAULT_CONFIG: AppConfig = {
   active_org: null,
+  active_developer_id: null,
   api_host: 'https://agent.everonet.com',
   api_path: '/api/v3/agent-pay',
 };
@@ -15,7 +16,7 @@ export class ConfigManager {
   private readonly configPath: string;
 
   constructor(basePath?: string) {
-    this.basePath = basePath ?? join(homedir(), '.agenzo-token-cli');
+    this.basePath = basePath ?? join(homedir(), '.agenzo-admin-cli');
     this.configPath = join(this.basePath, 'config.json');
   }
 
@@ -39,6 +40,7 @@ export class ConfigManager {
         }
         return {
           active_org: (raw.active_org as string) ?? null,
+          active_developer_id: (raw.active_developer_id as string) ?? null,
           api_host: (raw.api_host as string) ?? DEFAULT_CONFIG.api_host,
           api_path: (raw.api_path as string) ?? DEFAULT_CONFIG.api_path,
         };

@@ -38,7 +38,7 @@ export class ApiClient {
 
   private buildHeaders(auth: AuthMode): Record<string, string> {
     const headers: Record<string, string> = {
-      'User-Agent': `agenzo-token-cli/${getCurrentVersion()}`,
+      'User-Agent': `agenzo-admin-cli/${getCurrentVersion()}`,
     };
     if (auth.type === 'bearer') {
       headers['Authorization'] = `Bearer ${auth.token}`;

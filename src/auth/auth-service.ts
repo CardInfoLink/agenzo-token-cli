@@ -15,6 +15,21 @@ export interface LoginResult {
   isNewRegistration: boolean;
 }
 
+export interface LoginOptions {
+  /**
+   * Value supplied via `--idempotency-key`, forwarded verbatim as the
+   * `Idempotency-Key` header on `POST /auth/login` (and `/auth/register` for
+   * new registrations). Never auto-generated.
+   */
+  idempotencyKey?: string;
+  /**
+   * Suppress human-facing status lines (e.g. "Magic link sent") on stderr.
+   * Set in `--format json` mode so agent consumers get clean output — only
+   * interactive prompts (org name / invitation code) and errors remain.
+   */
+  quiet?: boolean;
+}
+
 const POLL_INTERVAL_MS = 3000;
 const POLL_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
 const TOKEN_REFRESH_THRESHOLD_S = 300; // 5 minutes
@@ -26,10 +41,17 @@ export class AuthService {
     private readonly configManager: ConfigManager,
   ) {}
 
-  async login(email: string): Promise<LoginResult> {
+  async login(email: string, options: LoginOptions = {}): Promise<LoginResult> {
     const { Formatter } = await import('../utils/formatter.js');
     let isNewRegistration = false;
     const noAuth: AuthMode = { type: 'none' };
+
+    // Forward `--idempotency-key` verbatim as the Idempotency-Key header on the
+    // server writes (login / register). Omitted entirely when not supplied —
+    // never auto-generated (Requirement 4.3).
+    const idempotencyHeaders = options.idempotencyKey
+      ? { 'Idempotency-Key': options.idempotencyKey }
+      : undefined;
 
     // Step 1: Probe whether this email is already registered.
     // No user-facing status here — we haven't sent anything yet, and we may
@@ -38,6 +60,7 @@ export class AuthService {
       '/auth/login',
       noAuth,
       { email },
+      idempotencyHeaders,
     );
 
     let magicLinkToken: string;
@@ -61,6 +84,7 @@ export class AuthService {
         '/auth/register',
         noAuth,
         registerBody,
+        idempotencyHeaders,
       );
 
       if (!registerResult.success && registerResult.errorCode === 1103) {
@@ -72,6 +96,7 @@ export class AuthService {
           '/auth/register',
           noAuth,
           registerBody,
+          idempotencyHeaders,
         );
       }
 
@@ -93,10 +118,18 @@ export class AuthService {
 
     // Magic link token in hand means the backend has dispatched the email.
     // This is the only place the "Sending magic link" status is truthful.
-    console.log(Formatter.status('success', 'Magic link sent. Please check your inbox.'));
+    // Status/progress lines are logs — stderr only, and suppressed in quiet
+    // (json) mode so agent consumers get clean output (Requirement 4.4).
+    if (!options.quiet) {
+      console.error(Formatter.status('success', 'Magic link sent. Please check your inbox.'));
+    }
 
     // Step 2: Poll magic link status
-    const credential = await this.pollMagicLinkStatus(magicLinkToken, email);
+    const credential = await this.pollMagicLinkStatus(
+      magicLinkToken,
+      email,
+      options.quiet,
+    );
 
     // Step 3: Save credential and update active org
     await this.credentialStore.save(credential);
@@ -108,10 +141,15 @@ export class AuthService {
   private async pollMagicLinkStatus(
     magicLinkToken: string,
     email: string,
+    quiet = false,
   ): Promise<OrgCredential> {
     const startTime = Date.now();
     const noAuth: AuthMode = { type: 'none' };
-    const spinner = createSpinner('Waiting for email verification');
+    // The spinner draws to stdout; in quiet (json) mode skip it entirely so
+    // the stdout payload stays clean for agent consumers.
+    const spinner: Spinner | null = quiet
+      ? null
+      : createSpinner('Waiting for email verification');
 
     while (Date.now() - startTime < POLL_TIMEOUT_MS) {
       const result = await this.apiClient.get<MagicLinkStatusResponse>(
@@ -121,20 +159,20 @@ export class AuthService {
       );
 
       if (!result.success) {
-        spinner.stop();
+        spinner?.stop();
         if (result.errorCode === 1101) {
-          throw new AuthError('Magic link expired', 'Please run agenzo-token-cli login again');
+          throw new AuthError('Magic link expired', 'Please run agenzo-admin-cli auth login again');
         }
         throw new AuthError(
           `Polling failed: [${result.errorCode}] ${result.errorMessage}`,
-          'Please run agenzo-token-cli login again',
+          'Please run agenzo-admin-cli auth login again',
         );
       }
 
       const data = result.data;
 
       if (data.status === 'CONSUMED') {
-        spinner.stop();
+        spinner?.stop();
         const raw = data as unknown as Record<string, unknown>;
         const org = raw.organization as Record<string, unknown> | undefined;
 
@@ -166,21 +204,21 @@ export class AuthService {
       }
 
       if (data.status === 'EXPIRED') {
-        spinner.stop();
-        throw new AuthError('Magic link expired', 'Please run agenzo-token-cli login again');
+        spinner?.stop();
+        throw new AuthError('Magic link expired', 'Please run agenzo-admin-cli auth login again');
       }
 
       await this.sleep(POLL_INTERVAL_MS);
     }
 
-    spinner.stop();
-    throw new AuthError('Login timed out (10 minutes)', 'Please run agenzo-token-cli login again');
+    spinner?.stop();
+    throw new AuthError('Login timed out (10 minutes)', 'Please run agenzo-admin-cli auth login again');
   }
 
   async logout(): Promise<void> {
     const orgId = await this.configManager.getActiveOrg();
     if (!orgId) {
-      throw new AuthError('Not signed in', 'Please run agenzo-token-cli login first');
+      throw new AuthError('Not signed in', 'Please run agenzo-admin-cli auth login first');
     }
 
     const credential = await this.credentialStore.get(orgId);
@@ -202,12 +240,12 @@ export class AuthService {
   async getValidAccessToken(): Promise<string> {
     const orgId = await this.configManager.getActiveOrg();
     if (!orgId) {
-      throw new AuthError('Not signed in', 'Please run agenzo-token-cli login first');
+      throw new AuthError('Not signed in', 'Please run agenzo-admin-cli auth login first');
     }
 
     const credential = await this.credentialStore.get(orgId);
     if (!credential) {
-      throw new AuthError('Not signed in', 'Please run agenzo-token-cli login first');
+      throw new AuthError('Not signed in', 'Please run agenzo-admin-cli auth login first');
     }
 
     const now = Math.floor(Date.now() / 1000);
@@ -232,8 +270,17 @@ export class AuthService {
    */
   private async autoReLogin(credential: OrgCredential): Promise<string> {
     const { Formatter } = await import('../utils/formatter.js');
-    console.log(Formatter.status('info', 'Session expired, re-authenticating'));
-    console.log(Formatter.status('loading', 'Sending magic link'));
+    const { resolveFormat } = await import('../utils/output.js');
+    // Auto re-login is triggered from deep inside executeWithAuth and has no
+    // direct format context, so read the resolved format from the environment
+    // (index.ts mirrors the global --format into AGENZO_FORMAT after parsing).
+    // Status lines must go to stderr (never stdout — that would corrupt the
+    // JSON payload), and stay silent entirely in json mode for agent consumers.
+    const quiet = resolveFormat(undefined) === 'json';
+    if (!quiet) {
+      console.error(Formatter.status('info', 'Session expired, re-authenticating'));
+      console.error(Formatter.status('loading', 'Sending magic link'));
+    }
 
     const noAuth: AuthMode = { type: 'none' };
     const loginResult = await this.apiClient.post<{ magic_link_token: string }>(
@@ -245,13 +292,14 @@ export class AuthService {
     if (!loginResult.success) {
       throw new AuthError(
         `Auto re-login failed: ${loginResult.errorMessage}`,
-        'Please run agenzo-token-cli login manually',
+        'Please run agenzo-admin-cli auth login manually',
       );
     }
 
     const newCredential = await this.pollMagicLinkStatus(
       loginResult.data.magic_link_token,
       credential.email,
+      quiet,
     );
 
     // Check if re-login returned a different org than expected
@@ -261,7 +309,9 @@ export class AuthService {
       await this.credentialStore.save(newCredential);
       // Switch active org to match
       await this.configManager.setActiveOrg(newCredential.org_id);
-      console.log(Formatter.status('warning', `You were signed into a different organization: ${newCredential.org_name}. Your active organization has been updated.`));
+      if (!quiet) {
+        console.error(Formatter.status('warning', `You were signed into a different organization: ${newCredential.org_name}. Your active organization has been updated.`));
+      }
       throw new AuthError(
         'Please run your command again.',
         'The active organization was switched during re-authentication.',
@@ -270,7 +320,9 @@ export class AuthService {
 
     // Same org — update credential and continue
     await this.credentialStore.save(newCredential);
-    console.log(Formatter.status('success', 'Re-authenticated successfully'));
+    if (!quiet) {
+      console.error(Formatter.status('success', 'Re-authenticated successfully'));
+    }
 
     return newCredential.access_token;
   }
@@ -278,7 +330,7 @@ export class AuthService {
   async refreshToken(orgId: string): Promise<void> {
     const credential = await this.credentialStore.get(orgId);
     if (!credential) {
-      throw new AuthError('Not signed in', 'Please run agenzo-token-cli login first');
+      throw new AuthError('Not signed in', 'Please run agenzo-admin-cli auth login first');
     }
 
     const result = await this.apiClient.post<RefreshResponse>(
@@ -289,11 +341,11 @@ export class AuthService {
 
     if (!result.success) {
       if (result.errorCode === 1002) {
-        throw new AuthError('Session expired', 'Please run agenzo-token-cli login again');
+        throw new AuthError('Session expired', 'Please run agenzo-admin-cli auth login again');
       }
       throw new AuthError(
         `Token refresh failed: [${result.errorCode}] ${result.errorMessage}`,
-        'Please run agenzo-token-cli login again',
+        'Please run agenzo-admin-cli auth login again',
       );
     }
 
@@ -335,12 +387,12 @@ export class AuthService {
   private async recoverToken(): Promise<string> {
     const orgId = await this.configManager.getActiveOrg();
     if (!orgId) {
-      throw new AuthError('Not signed in', 'Please run agenzo-token-cli login first');
+      throw new AuthError('Not signed in', 'Please run agenzo-admin-cli auth login first');
     }
 
     const credential = await this.credentialStore.get(orgId);
     if (!credential) {
-      throw new AuthError('Not signed in', 'Please run agenzo-token-cli login first');
+      throw new AuthError('Not signed in', 'Please run agenzo-admin-cli auth login first');
     }
 
     try {

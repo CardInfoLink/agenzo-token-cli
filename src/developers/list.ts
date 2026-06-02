@@ -2,6 +2,9 @@ import { Command } from 'commander';
 import { ApiClient } from '../api/client.js';
 import { AuthService } from '../auth/auth-service.js';
 import { Formatter } from '../utils/formatter.js';
+import { render, resolveFormat } from '../utils/output.js';
+import { ApiBusinessError } from '../utils/errors.js';
+import { CommandResult } from '../types/commands.js';
 import { Developer } from '../types/api.js';
 
 export function registerListCommand(
@@ -11,7 +14,9 @@ export function registerListCommand(
   parent
     .command('list')
     .description('List all developers')
-    .action(async () => {
+    .action(async (_options, command: Command) => {
+      const format = resolveFormat(command.optsWithGlobals().format);
+
       const result = await deps.authService.executeWithAuth((token) =>
         deps.apiClient.get<Developer[]>(
           '/developers',
@@ -19,23 +24,23 @@ export function registerListCommand(
         ),
       );
 
-      if (result.success) {
-        if (result.data.length === 0) {
-          console.log(Formatter.status('info', 'No developers found'));
-          return;
-        }
-        const headers = ['ID', 'Name', 'Email', 'Status'];
-        const rows = result.data.map((d) => [
-          d.id,
-          d.name,
-          d.email,
-          d.status,
-        ]);
-        console.log(Formatter.table(headers, rows));
-      } else {
-        console.error(
-          Formatter.status('error', result.errorMessage),
-        );
+      if (!result.success) {
+        throw new ApiBusinessError(result.errorCode, result.errorMessage, result.statusCode);
       }
+
+      const developers = result.data;
+      const commandResult: CommandResult<Developer[]> = {
+        data: developers,
+        text: () => {
+          if (developers.length === 0) {
+            return Formatter.status('info', 'No developers found');
+          }
+          const headers = ['ID', 'Name', 'Email', 'Status'];
+          const rows = developers.map((d) => [d.id, d.name, d.email, d.status]);
+          return Formatter.table(headers, rows);
+        },
+      };
+
+      render(commandResult, { format });
     });
 }

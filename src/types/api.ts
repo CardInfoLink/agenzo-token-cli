@@ -55,6 +55,22 @@ export interface Developer {
   name: string;
   email: string;
   status: string;
+  billing_mode?: string; // pay_per_call | monthly_settlement
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================================
+// Settlement Account
+// ============================================================
+
+export interface SettlementAccount {
+  id: string;
+  developer_id: string;
+  organization_id?: string;
+  balance: string; // minor currency units (e.g. cents), serialized as a string to avoid precision loss
+  currency: string;
+  status: string; // active | suspended | closed
   created_at: string;
   updated_at: string;
 }
@@ -69,6 +85,7 @@ export interface ApiKey {
   name: string;
   api_key?: string; // Full key value, only returned on create/rotate
   key_prefix: string;
+  scope?: string[]; // CLIs this key may call: subset of token / merchant / payment
   status: string;
   last_used_at?: string | null;
   created_at: string;

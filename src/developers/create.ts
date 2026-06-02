@@ -3,7 +3,11 @@ import { ApiClient } from '../api/client.js';
 import { AuthService } from '../auth/auth-service.js';
 import { PromptEngine } from '../utils/prompt-engine.js';
 import { Formatter } from '../utils/formatter.js';
+import { render, resolveFormat, notify } from '../utils/output.js';
+import { ApiBusinessError, IdempotencyKeyRequiredError } from '../utils/errors.js';
+import { CommandResult } from '../types/commands.js';
 import { Developer } from '../types/api.js';
+import { resolveBillingMode } from './billing-mode.js';
 
 export function registerCreateCommand(
   parent: Command,
@@ -14,7 +18,14 @@ export function registerCreateCommand(
     .description('Create a developer')
     .option('--developer-name <name>', 'Developer name')
     .option('--developer-email <email>', 'Developer email')
-    .action(async (options) => {
+    .option(
+      '--billing-mode <mode>',
+      'Billing mode: pay_per_call | monthly_settlement (default: pay_per_call)',
+    )
+    .option('--idempotency-key <key>', 'Idempotency key forwarded as the Idempotency-Key header')
+    .action(async (options, command: Command) => {
+      const format = resolveFormat(command.optsWithGlobals().format);
+
       const name = await PromptEngine.resolveInput(options.developerName, {
         message: 'Developer name:',
       });
@@ -22,30 +33,65 @@ export function registerCreateCommand(
         message: 'Developer email:',
       });
 
+      // Validate --billing-mode locally (defaults to pay_per_call). An invalid
+      // value throws ValidationError -> PARAM_INVALID / exit 1.
+      const billingMode = resolveBillingMode(options.billingMode);
+
+      // --idempotency-key is mandatory on every server write; the CLI never
+      // auto-generates it. When absent, prompt for it interactively. In
+      // non-interactive mode (--yes) prompting would hang, so require the flag.
+      let idempotencyKey = options.idempotencyKey as string | undefined;
+      if (!idempotencyKey) {
+        if (command.optsWithGlobals().yes) {
+          throw new IdempotencyKeyRequiredError('developers create');
+        }
+        idempotencyKey = await PromptEngine.resolveInput(undefined, {
+          message: 'Idempotency key (unique per write, for safe retry):',
+          validate: (v) => v.trim().length > 0 || 'Idempotency key is required',
+        });
+      }
+      const extraHeaders: Record<string, string> = {
+        'Idempotency-Key': String(idempotencyKey),
+      };
+
       const result = await deps.authService.executeWithAuth((token) =>
         deps.apiClient.post<Developer>(
           '/developers/create',
           { type: 'bearer', token },
-          { name, email },
+          { name, email, billing_mode: billingMode },
+          extraHeaders,
         ),
       );
 
-      if (result.success) {
-        console.log(Formatter.status('success', 'Developer created'));
-        const data = result.data as Record<string, unknown>;
-        console.log(
-          Formatter.keyValue([
-            ['ID', String(data.id ?? data.developer_id ?? '-')],
-            ['Org ID', String(data.organization_id ?? '-')],
-            ['Name', String(data.name ?? '-')],
-            ['Email', String(data.email ?? '-')],
-            ['Status', String(data.status ?? '-')],
-          ]),
-        );
-      } else {
-        console.error(
-          Formatter.status('error', result.errorMessage),
-        );
+      if (!result.success) {
+        throw new ApiBusinessError(result.errorCode, result.errorMessage, result.statusCode);
       }
+
+      const dev = result.data;
+      // Preserve the original handler's defensive `id ?? developer_id` read,
+      // type-safely (the backend has historically returned either field).
+      const idDisplay = String(
+        dev.id ?? (dev as { developer_id?: string }).developer_id ?? '-',
+      );
+      const commandResult: CommandResult<Developer> = {
+        data: dev,
+        note: 'Developer created',
+        text: () =>
+          Formatter.keyValue([
+            ['ID', idDisplay],
+            ['Org ID', String(dev.organization_id ?? '-')],
+            ['Name', String(dev.name ?? '-')],
+            ['Email', String(dev.email ?? '-')],
+            ['Status', String(dev.status ?? '-')],
+            ['Billing Mode', String(dev.billing_mode ?? '-')],
+          ]),
+      };
+
+      // Status / progress lines belong on stderr (table mode only); stdout
+      // carries only the payload.
+      if (commandResult.note) {
+        notify(format, 'success', commandResult.note);
+      }
+      render(commandResult, { format });
     });
 }

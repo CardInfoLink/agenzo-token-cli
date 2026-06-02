@@ -17,7 +17,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /** Command the user should run to pick up the latest CLI. */
-export const UPGRADE_COMMAND = 'npm install -g agenzo-token-cli@latest';
+export const UPGRADE_COMMAND = 'npm install -g agenzo-admin-cli@latest';
 
 /**
  * Hard-coded fallback used only when `package.json` cannot be read at runtime
@@ -57,7 +57,7 @@ export function getCurrentVersion(): string {
   cachedVersion = FALLBACK_VERSION;
   // eslint-disable-next-line no-console
   console.warn(
-    `[agenzo-token-cli] package.json not found; using fallback version ${FALLBACK_VERSION}`,
+    `[agenzo-admin-cli] package.json not found; using fallback version ${FALLBACK_VERSION}`,
   );
   return cachedVersion;
 }
