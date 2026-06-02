@@ -68,7 +68,11 @@ agenzo-token-cli keys create --developer-id dev_01KPX... --key-name "My Key"
 - Key format: `sk_prod_...`
 - Used for all Runtime Plane operations
 
-### Step 4: Add Payment Method (Card Binding)
+### Step 4: Add Payment Method
+
+Two modes are available:
+
+#### Mode A: Default (manual) — CLI collects card details
 
 ```bash
 agenzo-token-cli payment-methods add --api-key sk_prod_xxx --email user@example.com
@@ -83,6 +87,78 @@ agenzo-token-cli payment-methods add --api-key sk_prod_xxx --email user@example.
 - CLI polls verification status automatically
 - On success, card becomes ACTIVE with a `pm_xxx` ID
 - Duplicate cards (same first6 + last4) are overwritten, not rejected
+
+#### Mode B: Drop-in — add payment method via DropIn SDK in the agent's own front-end
+
+```bash
+agenzo-token-cli payment-methods add --mode dropin --api-key sk_prod_xxx --email user@example.com
+```
+
+- **Ask: `--email`** — Used as the LinkPay reference when adding the payment method. MUST ask the user.
+- `--api-key`: Use the value from Step 3 (do not ask again).
+- PAN/CVV are **never** collected by the CLI or our backend — the user enters card details directly in the DropIn SDK widget rendered in their own front-end.
+
+**How it works:**
+
+1. CLI calls the backend to create a LinkPay session → returns `pm_id` + `session_id`
+2. The agent integrates the DropIn SDK in their front-end using the `session_id` (see "Drop-in Front-end Integration" below)
+3. CLI polls verification status at 5-second intervals (up to 30 minutes)
+4. Once the user completes the payment method add in the widget, the PM transitions to ACTIVE
+5. The `pm_id` can then be used with `payment-tokens create` just like a default-mode card
+
+**Drop-in Front-end Integration:**
+
+The agent must render the DropIn SDK in their own web page using the `session_id` returned by the CLI. Here's how:
+
+1. **Install the SDK**
+   ```bash
+   npm install cil-dropin-components
+   ```
+   Or load via CDN:
+   ```html
+   <script src="https://cdn.jsdelivr.net/npm/cil-dropin-components@latest/dist/index.min.js"></script>
+   ```
+
+2. **Add a container element**
+   ```html
+   <div id="dropInApp"></div>
+   ```
+
+3. **Initialize with the session_id from CLI output**
+   ```javascript
+   import DropInSDK from 'cil-dropin-components'
+
+   const sdk = new DropInSDK({
+     id: '#dropInApp',
+     type: 'payment',
+     sessionID: '<session_id from CLI output>',
+     locale: 'en-US',
+     mode: 'embedded',           // or 'bottomUp' for mobile
+     environment: 'HKG_prod',    // use 'UAT' for sandbox testing
+     appearance: {
+       colorBackground: '#fff'
+     },
+     payment_completed: (data) => {
+       // Payment method added successfully — CLI will detect this automatically via polling.
+       // data contains: { type, merchantTransID, sessionID }
+       console.log('Payment method added successfully:', data.merchantTransID)
+     },
+     payment_failed: (data) => {
+       // Adding the payment method failed — CLI will also detect this.
+       // data contains: { type, merchantTransID, sessionID, code, message }
+       console.log('Add payment method failed:', data.message)
+     },
+     payment_cancelled: (data) => {
+       // User cancelled — session remains PENDING, CLI keeps polling.
+       console.log('User cancelled')
+     }
+   })
+   ```
+
+4. **That's it** — the CLI handles all backend status polling. Once the user completes the card form and 3DS in the widget, the CLI will print the result (brand + last4) and exit.
+
+**Key points for agents:**
+- The `session_id` is a one-time use token; if the session expires (30 min), re-run the CLI command with the same email to get a fresh session (the old PENDING record is overwritten).
 
 ### Step 5: Create Payment Token
 
@@ -157,7 +233,7 @@ VCN, X402, and Network Token all involve pre-authorization (fund freeze) on a ga
 
 Not all cards support Network Token. Depends on issuer and card network, not brand.
 
-How to check: after card binding, `evo_data.network_token` field has a value if supported, empty if not.
+How to check: after the payment method is added, `evo_data.network_token` field has a value if supported, empty if not.
 
 Cards without support will get: `This card does not support Network Token.`
 
@@ -215,8 +291,13 @@ agenzo-token-cli keys disable <key_id>    # Permanently disable key
 
 ### Payment Method Management
 ```bash
+# Default mode (CLI collects card details, 3DS via email)
 agenzo-token-cli payment-methods add --api-key <key>
 agenzo-token-cli payment-methods add --api-key <key> --email user@example.com --card-number 2223001870064586 --expiry 1226 --cvv 935
+
+# Drop-in mode (add payment method via DropIn SDK in agent's front-end)
+agenzo-token-cli payment-methods add --mode dropin --api-key <key> --email user@example.com
+
 agenzo-token-cli payment-methods list --api-key <key>
 agenzo-token-cli payment-methods get <pm_id> --api-key <key>
 agenzo-token-cli payment-methods disable <pm_id> --api-key <key>
@@ -251,7 +332,7 @@ agenzo-token-cli config show                            # Show current config
 | Error | Cause | Fix |
 |-------|-------|-----|
 | `No active payment methods found` | API key belongs to a different developer | Use the correct API key |
-| `This card does not support Network Token` | Issuer does not support NT | Bind a card that supports NT |
+| `This card does not support Network Token` | Issuer does not support NT | Add a payment method that supports NT |
 | `Evo preauth failed` | PSP or issuer rejected preauth | Try a different card or retry later |
 | `email: value is not a valid email address` | Invalid email format | Check email format |
 | `Duplicate key error` | Developer with same email exists | Use `developers list` to find existing |
@@ -262,9 +343,9 @@ agenzo-token-cli config show                            # Show current config
 
 ## Important Notes
 
-- **API key scope**: Keys are bound to a developer. Cards bound with Key A are NOT visible to Key B.
+- **API key scope**: Keys are scoped to a developer. Payment methods added with Key A are NOT visible to Key B.
 - **API key value**: `--api-key` takes the full key string (`sk_prod_...`), not the key ID.
 - **One-time tokens**: Payment tokens are single-use. Create a new one for each transaction.
-- **Duplicate binding**: Same card under same developer overwrites the old record.
+- **Duplicate cards**: Adding the same card under the same developer overwrites the old record.
 - **API path prefix**: All paths are prefixed with `/api/v3/agent-pay/`, handled internally.
 - **Idempotency-Key**: `payment-tokens create` requires `--idempotency-key`. The CLI never generates this value automatically — the caller must supply it. It is sent as the `Idempotency-Key` HTTP header (not in the body). Use the same value to safely retry the same logical request; use a fresh value for each new request.

@@ -105,7 +105,7 @@ async function main() {
 
   // Payment methods command group
   const pmCmd = program.command('payment-methods').description('Payment method management');
-  registerAddCommand(pmCmd, runtimePlaneDeps);
+  registerAddCommand(pmCmd, { apiClient, configManager });
   registerPmListCommand(pmCmd, runtimePlaneDeps);
   registerPmGetCommand(pmCmd, runtimePlaneDeps);
   registerPmDisableCommand(pmCmd, runtimePlaneDeps);

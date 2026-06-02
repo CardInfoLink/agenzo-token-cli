@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
 
-CLI tool for AI Agents to manage payment tokens — VCN, Network Token, and X402. Built for humans and AI Agents, with interactive prompts, 3DS card binding, and multi-developer API key management.
+CLI tool for AI Agents to manage payment tokens — VCN, Network Token, and X402. Built for humans and AI Agents, with interactive prompts, 3DS-verified payment methods, and multi-developer API key management.
 
 [Install](#installation) · [AI Agent Skill](#ai-agent-skill) · [Quick Start](#quick-start) · [Commands](#commands) · [Auth](#authentication) · [Contributing](CONTRIBUTING.md)
 
@@ -23,7 +23,7 @@ CLI tool for AI Agents to manage payment tokens — VCN, Network Token, and X402
 | 🔐 Auth | Magic Link login, auto-registration, token refresh, multi-org switch |
 | 👤 Developers | Create, list, get, update developers under your organization |
 | 🔑 API Keys | Create, list, rotate, disable keys scoped to each developer |
-| 💳 Payment Methods | Card binding with 3DS, verification polling, `--cvv` flag for automation, duplicate card override |
+| 💳 Payment Methods | Add payment methods with 3DS (default mode) or via DropIn SDK (drop-in mode), verification polling, `--cvv` flag for automation, duplicate card override |
 | 🎫 VCN | Virtual card with spend limit, backed by AgentCard + Evo preauth |
 | 🔒 Network Token | Cryptogram via evo-cli, supports Visa & MasterCard (issuer-dependent) |
 | ⛓️ X402 | On-chain payment signature for Web3 transactions |
@@ -73,11 +73,14 @@ agenzo-token-cli developers create --developer-name "My Agent" --developer-email
 # 3. Create an API Key (save it — only shown once!)
 agenzo-token-cli keys create --developer-id dev_01KPX... --key-name "Production Key"
 
-# 4. Bind a card (interactive 3DS verification)
+# 4. Add a payment method (interactive 3DS verification)
 agenzo-token-cli payment-methods add --api-key sk_prod_xxx --email user@example.com
 
 # Or pass all card details for automation (CVV via flag)
 agenzo-token-cli payment-methods add --api-key sk_prod_xxx --email user@example.com --card-number 2223001870064586 --expiry 1226 --cvv 935
+
+# Or use Drop-in mode (card details entered in your own front-end via Evo DropIn SDK)
+agenzo-token-cli payment-methods add --mode dropin --api-key sk_prod_xxx --email user@example.com
 
 # 5. Create a payment token (interactive card selection)
 # --idempotency-key is required and must be supplied by the caller; the CLI prompts if omitted.
@@ -94,9 +97,9 @@ agenzo-token-cli payment-tokens create --type network-token --api-key sk_prod_xx
 > Read [SKILL.md](SKILL.md) for the complete guide. Key points:
 
 1. All Runtime Plane commands require `--api-key` (the full `sk_prod_...` string)
-2. API keys are scoped to a developer — cards bound with Key A are not visible to Key B
+2. API keys are scoped to a developer — cards added with Key A are not visible to Key B
 3. `payment-tokens create` auto-fetches the card list and prompts for selection
-4. Not all cards support Network Token — check `evo_data.network_token` after binding
+4. Not all cards support Network Token — check `evo_data.network_token` after the payment method is added
 
 ## Commands
 
@@ -107,7 +110,7 @@ agenzo-token-cli payment-tokens create --type network-token --api-key sk_prod_xx
 | `orgs me / update / list / switch` | Organization management |
 | `developers create / list / get / update` | Developer management |
 | `keys create / list / get / rotate / disable` | API Key management |
-| `payment-methods add / list / get / disable` | Card binding with 3DS verification |
+| `payment-methods add / list / get / disable` | Add payment methods with 3DS verification |
 | `payment-tokens create / list / get / revoke` | Payment tokens (VCN / Network Token / X402) |
 | `config set-host / reset-host / show` | API host configuration |
 
@@ -142,8 +145,13 @@ agenzo-token-cli keys disable <key_id>    # Permanently disable key
 
 ### Payment Method Management
 ```bash
+# Default mode (CLI collects card details, 3DS via email)
 agenzo-token-cli payment-methods add --api-key <key>
 agenzo-token-cli payment-methods add --api-key <key> --email user@example.com --card-number 2223001870064586 --expiry 1226 --cvv 935
+
+# Drop-in mode (add payment method via DropIn SDK in agent's front-end)
+agenzo-token-cli payment-methods add --mode dropin --api-key <key> --email user@example.com
+
 agenzo-token-cli payment-methods list --api-key <key>
 agenzo-token-cli payment-methods get <pm_id> --api-key <key>
 agenzo-token-cli payment-methods disable <pm_id> --api-key <key>
@@ -189,7 +197,7 @@ agenzo-token-cli config show                            # Show current config
 │   ├── orgs/              # Organization management
 │   ├── developers/        # Developer management
 │   ├── keys/              # API Key management
-│   ├── payment-methods/   # Card binding + 3DS
+│   ├── payment-methods/   # Add payment methods + 3DS
 │   ├── payment-tokens/    # VCN / Network Token / X402
 │   ├── api/               # HTTP client
 │   ├── config/            # Local config & credentials

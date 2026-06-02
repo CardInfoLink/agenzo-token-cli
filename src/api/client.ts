@@ -83,6 +83,29 @@ export class ApiClient {
     });
   }
 
+  /**
+   * POST to an absolute URL (full host + path).
+   * Used for endpoints outside the configured api_path prefix
+   * (e.g. /api/v2/developers/linkpay when default path is /api/v3/agent-pay).
+   */
+  async postAbsolute<T>(
+    absoluteUrl: string,
+    auth: AuthMode,
+    body?: Record<string, unknown>,
+    extraHeaders?: Record<string, string>,
+  ): Promise<ApiResult<T>> {
+    const headers = this.buildHeaders(auth);
+    headers['Content-Type'] = 'application/json';
+    if (extraHeaders) {
+      Object.assign(headers, extraHeaders);
+    }
+    return this.request<T>(absoluteUrl, {
+      method: 'POST',
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  }
+
   private async request<T>(url: string, init: RequestInit): Promise<ApiResult<T>> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
