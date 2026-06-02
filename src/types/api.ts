@@ -91,6 +91,30 @@ export interface PaymentMethod {
 }
 
 // ============================================================
+// Drop-in Session (for --mode dropin card binding)
+// ============================================================
+
+export interface DropinSession {
+  session_id: string;
+  link_url: string;
+  merchant_trans_id: string;
+}
+
+/**
+ * Response from `POST /api/v3/agent-pay/payment-methods/dropin/create`.
+ *
+ * Returned when the CLI initiates a Drop-in card binding session through
+ * the v3 agent-pay API. The PM is created in PENDING state and must be
+ * activated by the third-party browser using DropInSDK with `session_id`.
+ */
+export interface DropinCreateResponse {
+  id: string; // pm_id, e.g. "pm_xxxxx"
+  session_id: string; // Evo LinkPay session ID for DropInSDK init
+  merchant_trans_id: string; // Evo merchant transaction ID, format T{y}{MMddHHmmss}{rand3}
+  status: string; // always "PENDING" on creation
+}
+
+// ============================================================
 // Payment Tokens
 // ============================================================
 
