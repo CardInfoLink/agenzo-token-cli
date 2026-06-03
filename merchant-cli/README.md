@@ -9,7 +9,7 @@ extra setup.
 ## Installation
 
 ```bash
-npm install -g agenzo-merchant-cli
+npm install -g @agenzo/merchant-cli
 ```
 
 **Requirements**: Node.js 18+
