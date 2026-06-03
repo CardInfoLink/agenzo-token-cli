@@ -1,4 +1,4 @@
-# agenzo-merchant-cli — AI Agent Skill
+# @agenzo/merchant-cli — AI Agent Skill
 
 CLI for ordering rides and querying merchant services. This skill tells an AI
 Agent how to discover capabilities and drive the full ride lifecycle.

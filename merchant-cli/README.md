@@ -1,4 +1,8 @@
-# agenzo-merchant-cli
+# @agenzo/merchant-cli
+
+[![npm version](https://img.shields.io/npm/v/@agenzo/merchant-cli)](https://www.npmjs.com/package/@agenzo/merchant-cli)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
 
 CLI tool for AI Agents to order rides and query merchant services. Ships with a
 structured [SKILL.md](SKILL.md) so AI Agents can run the full ride flow with zero
