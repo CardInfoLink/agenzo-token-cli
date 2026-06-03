@@ -31,7 +31,7 @@
 
 ### 1.3 范围外（Out of Scope）
 
-- 后端 settlement account 自动建账户 / 回滚一致性的服务端逻辑（属 `agenzo` 后端测试，见 `tests/agent_pay/test_account_service.py` / `test_developer_service.py`）；CLI 侧仅验证 `accounts get` 的请求与渲染。
+- 后端 settlement account 建账户（仅 monthly_settlement）/ 回滚一致性的服务端逻辑（属 `agenzo` 后端测试，见 `tests/agent_pay/test_account_service.py` / `test_developer_service.py`）；CLI 侧仅验证 `accounts get` 的请求与渲染。
 - API Key scope 的**鉴权落地**（`KEY_SCOPE_DENIED`，调用不在 scope 内的运行面 CLI 时拒绝）——属后端 BACK-034，本迭代后端只持久化 + 回显 scope，不据此鉴权；CLI 侧不验证鉴权拒绝。
 - `billing_mode` 切换流程（线下 admin 操作，CLI 不提供 update）。
 - 后端幂等去重落地（BACK-090）—— 仅验证 CLI 侧 header 转发（Property 6），不验证服务端去重。
@@ -536,7 +536,7 @@ jq .active_org ~/.agenzo-admin-cli/config.json
 | TC-DEV-CRT-10 | billing_mode 非法 | `--billing-mode weekly` | 本地 `resolveBillingMode` 抛 `ValidationError`→`code=PARAM_INVALID`；退出 1（不发起请求） |
 | TC-DEV-CRT-11 | billing_mode 归一化 | `--billing-mode Monthly_Settlement` | 大小写归一化为 `monthly_settlement`；退出 0 |
 
-> 副作用提示：后端在 create developer 时自动建一条 settlement account（balance=0/USD/active）。CLI 不直接断言该副作用，由 §5.19 `accounts get` 间接覆盖。
+> 副作用提示：后端**仅当** `billing_mode=monthly_settlement` 时为新 developer 建一条 settlement account（balance=0/USD/active）；`pay_per_call`（默认）**不建**账户。CLI 不直接断言该副作用，由 §5.19 `accounts get` 间接覆盖（月结 developer 有账户、pay_per_call developer 返回 `data:null`）。
 
 ```bash
 agenzo-admin-cli developers create \
@@ -723,7 +723,7 @@ agenzo-admin-cli keys disable "$KEY_ID" --idempotency-key key-dis-2 --format jso
 
 ### 5.19 `accounts get`（R，`GET /accounts?developer_id=...`）
 
-对应：Req 7.1；cli-design §2.4.19。查询 Developer 的月结账户。账户在 create developer 时由后端自动建（balance=0/USD/active）；存量 Developer 可能无账户，返回 `data:null` + info 提示。
+对应：Req 7.1；cli-design §2.4.19。查询 Developer 的月结账户。账户**仅当** `billing_mode=monthly_settlement` 时在 create developer 由后端建（balance=0/USD/active）；`pay_per_call` developer 与存量 developer 均无账户，返回 `data:null` + info 提示。
 
 | 用例 | 场景 | 输入 | 预期 |
 | --- | --- | --- | --- |
