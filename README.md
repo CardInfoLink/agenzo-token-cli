@@ -4,11 +4,11 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
 
-Control-plane CLI for the Agenzo platform — login, organizations, developers, and API keys. Built for humans and AI Agents, with interactive prompts, transparent token refresh, multi-org switching, machine-readable JSON output, and stable exit codes.
+Control-plane CLI for the Agenzo platform — login, organizations, developers, API keys, and settlement accounts. Built for humans and AI Agents, with interactive prompts, transparent token refresh, multi-org switching, machine-readable JSON output, and stable exit codes.
 
 [Install](#installation) · [AI Agent Skill](#ai-agent-skill) · [Quick Start](#quick-start) · [Commands](#commands) · [Output](#output-formats) · [Exit Codes](#exit-codes) · [Auth](#authentication) · [Contributing](CONTRIBUTING.md)
 
-> **Scope** — `agenzo-admin-cli` owns the **control plane** (`auth`, `config`, `orgs`, `developers`, `keys`). The **runtime plane** (`payment-methods`, `payment-tokens`) lives in the separate `agenzo-token-cli` binary.
+> **Scope** — `agenzo-admin-cli` owns the **control plane** (`auth`, `config`, `orgs`, `developers`, `keys`, `accounts`). The **runtime plane** (`payment-methods`, `payment-tokens`) lives in the separate `agenzo-token-cli` binary.
 
 ## Why agenzo-admin-cli?
 
@@ -23,9 +23,10 @@ Control-plane CLI for the Agenzo platform — login, organizations, developers, 
 | Category | Capabilities |
 |----------|-------------|
 | 🔐 Auth | Magic Link login, auto-registration, transparent token refresh, multi-org switch |
-| 👤 Developers | Create, list, get, update developers under your organization |
-| 🔑 API Keys | Create, list, get, rotate, disable keys scoped to each developer |
+| 👤 Developers | Create, list, get, update developers; set `--billing-mode` (`pay_per_call` / `monthly_settlement`) at creation |
+| 🔑 API Keys | Create, list, get, rotate, disable keys; per-key `--scope` (`token` / `merchant` / `payment`) |
 | 🏢 Orgs | View / update the current org, list signed-in orgs, switch active org |
+| 💳 Accounts | Query a developer's settlement account (balance, currency, status) |
 | ⚙️ Config | Set API host, view config, reset to defaults |
 | 📤 Output | Human `table` by default, opt-in `--format json` for Agents (`AGENZO_FORMAT` supported) |
 | 🚦 Exit Codes | Stable `0–5` matrix + SCREAMING_SNAKE error envelope on stderr |
@@ -104,7 +105,7 @@ agenzo-admin-cli developers create \
 
 ## Commands
 
-18 commands across 5 noun groups:
+19 commands across 6 noun groups:
 
 | Command | Description |
 |---------|-------------|
@@ -112,8 +113,9 @@ agenzo-admin-cli developers create \
 | `auth logout` | Sign out of the current organization |
 | `config set-host / show / reset-host` | Local API host configuration |
 | `orgs get / update / list / switch` | Organization management (`get` replaces the legacy `orgs me`) |
-| `developers create / list / get / update` | Developer management |
-| `keys create / list / get / rotate / disable` | API Key management |
+| `developers create / list / get / update` | Developer management (`create` takes `--billing-mode`) |
+| `keys create / list / get / rotate / disable` | API Key management (`create` takes `--scope`) |
+| `accounts get` | Query a developer's settlement account |
 
 ## Command Reference
 
@@ -138,22 +140,35 @@ agenzo-admin-cli orgs update --email new@example.com   # Update org email (requi
 ### Developer Management
 ```bash
 agenzo-admin-cli developers create --developer-name "My Agent" --developer-email agent@example.com --idempotency-key dev-001
+# Optionally set the billing mode (default: pay_per_call):
+agenzo-admin-cli developers create --developer-name "Monthly Agent" --developer-email ops@example.com --billing-mode monthly_settlement --idempotency-key dev-002
 agenzo-admin-cli developers list
 agenzo-admin-cli developers get <developer_id>
-agenzo-admin-cli developers update <developer_id> --name "New Name" --idempotency-key dev-002
+agenzo-admin-cli developers update <developer_id> --name "New Name" --idempotency-key dev-003
 agenzo-admin-cli developers update <developer_id> --email new@example.com
 ```
+
+`--billing-mode` is one of `pay_per_call` (default) or `monthly_settlement`, fixed at creation (switching is an offline admin operation). A settlement account is auto-provisioned for every developer — query it with `accounts get`.
 
 ### API Key Management
 ```bash
 agenzo-admin-cli keys create --developer-id <dev_id> --key-name "Prod Key" --idempotency-key key-001
+# Restrict which runtime CLIs the key may call (default: all three):
+agenzo-admin-cli keys create --developer-id <dev_id> --key-name "Token-only Key" --scope token --idempotency-key key-002
 agenzo-admin-cli keys list --developer-id <dev_id>
 agenzo-admin-cli keys get <key_id>
-agenzo-admin-cli keys rotate <key_id> --idempotency-key key-002   # New key value (old one invalidated)
-agenzo-admin-cli keys disable <key_id> --idempotency-key key-003  # Permanently disable key
+agenzo-admin-cli keys rotate <key_id> --idempotency-key key-003   # New key value (old one invalidated)
+agenzo-admin-cli keys disable <key_id> --idempotency-key key-004  # Permanently disable key
 ```
 
-The plaintext API key returned by `create` / `rotate` is shown **only once** (on stderr in `table` mode, in the JSON payload in `json` mode). `keys list` / `keys get` return metadata only — never the key value.
+`--scope` is a comma-separated subset of `token` / `merchant` / `payment` (default: all three) controlling which runtime CLIs the key may call. The scope is persisted server-side and shown by `create` / `list` / `get` / `rotate`. The plaintext API key returned by `create` / `rotate` is shown **only once** (on stderr in `table` mode, in the JSON payload in `json` mode). `keys list` / `keys get` return metadata only — never the key value.
+
+### Accounts
+```bash
+agenzo-admin-cli accounts get --developer-id <dev_id>             # Query a developer's settlement account
+```
+
+Returns the settlement account (`balance` in minor units, `currency`, `status`). An account is auto-created for every developer; the read-only `accounts get` is most relevant for `monthly_settlement` developers. Top-ups and status changes are offline / admin operations.
 
 ### Configuration
 ```bash
@@ -227,7 +242,7 @@ On any failure the CLI writes a SCREAMING_SNAKE error envelope to **stderr** (ne
 { "error": { "code": "AUTH_NOT_SIGNED_IN", "message": "Not signed in. Run `agenzo-admin-cli auth login`.", "http": 401 } }
 ```
 
-In `table` mode the same failure renders as `✗ <message>` (plus a suggestion line for auth errors). The `http` field is included only when the failure originated from an HTTP call. Error codes use the domain prefixes `AUTH_`, `ORG_`, `KEY_`, `PARAM_`, `RATE_`, `UPSTREAM_`, plus `UPGRADE_REQUIRED`, `USER_CANCELLED`, and `INTERNAL_ERROR`; any unrecognized error maps to `INTERNAL_ERROR`.
+In `table` mode the same failure renders as `✗ <message>` (plus a suggestion line for auth errors). The `http` field is included only when the failure originated from an HTTP call. Error codes use the domain prefixes `AUTH_`, `ORG_`, `KEY_`, `RESOURCE_`, `PARAM_`, `RATE_`, `UPSTREAM_`, plus `UPGRADE_REQUIRED`, `USER_CANCELLED`, and `INTERNAL_ERROR`; any unrecognized error maps to `INTERNAL_ERROR`.
 
 ## Authentication
 
@@ -235,7 +250,7 @@ All commands operate on the control plane and authenticate with a Bearer token o
 
 | Surface | Commands | Auth Method |
 |---------|----------|-------------|
-| Control Plane | `orgs`, `developers`, `keys` | Bearer Token (via `auth login`) |
+| Control Plane | `orgs`, `developers`, `keys`, `accounts` | Bearer Token (via `auth login`) |
 | Local-only | `config`, `orgs list`, `orgs switch`, `auth logout` | No API call — local state only |
 
 `AuthService` injects `Authorization: Bearer <token>` and transparently refreshes the token within 300 seconds of expiry, re-running login automatically when the session has fully expired. Config, credentials, and the key cache are stored under `~/.agenzo-admin-cli/`.
@@ -247,8 +262,9 @@ All commands operate on the control plane and authenticate with a Bearer token o
 ├── src/
 │   ├── auth/              # auth login / logout + AuthService
 │   ├── orgs/              # Organization management (get / update / list / switch)
-│   ├── developers/        # Developer management
-│   ├── keys/              # API Key management
+│   ├── developers/        # Developer management (+ billing-mode helper)
+│   ├── keys/              # API Key management (+ scope helper)
+│   ├── accounts/          # Settlement account query (accounts get)
 │   ├── config/            # Local config, credentials, key cache (~/.agenzo-admin-cli)
 │   ├── api/               # HTTP client + X-CLI-Min-Version negotiation
 │   ├── utils/             # output renderer, exit-code mapper, errors, formatting, prompts

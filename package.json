@@ -1,6 +1,6 @@
 {
-  "name": "agenzo-admin-cli",
-  "version": "0.1.0",
+  "name": "@agenzo/admin-cli",
+  "version": "0.1.1",
   "description": "Admin CLI for the Agenzo platform (login, orgs, developers, API keys)",
   "type": "module",
   "main": "dist/index.js",
