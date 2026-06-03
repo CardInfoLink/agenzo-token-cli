@@ -1,11 +1,11 @@
 /**
  * HTTPS client for the ride/services API.
  *
- * - base = configured host; ride endpoints live under the `/api/v2` prefix
- * - auth via `X-API-Key` header
+ * - base = configured host; ride endpoints live under the `/api/v3/agent-pay` prefix
+ * - auth via `X-Api-Key` header
  * - write operations may carry an `Idempotency-Key` header (never in the body)
- * - unwraps the `{ success, data, error, request_id }` envelope: returns `data`
- *   on success, throws CliError (server `error.code`/`error.message`) on failure
+ * - unwraps the v3 envelope `{ code, message, data }`: returns `data` on
+ *   success (code "0000"), throws CliError (server code/message) on failure
  * - negotiates the CLI version floor via the `X-CLI-Min-Version` header
  * - maps connection/timeout failures to NETWORK_ERROR / TIMEOUT
  */
@@ -13,7 +13,7 @@ import { CliError, ErrorCodes } from './errors.js';
 import { getHost } from './config-manager.js';
 import { enforceMinVersion, getCurrentVersion } from './version.js';
 
-const RIDE_PREFIX = '/api/v2';
+const RIDE_PREFIX = '/api/v3/agent-pay';
 
 export interface ApiClientOptions {
   apiKey: string;
@@ -28,10 +28,9 @@ export interface RequestOptions {
 }
 
 interface Envelope<T> {
-  success?: boolean;
+  code?: string;
+  message?: string;
   data?: T;
-  error?: { code?: string; message?: string };
-  request_id?: string;
 }
 
 export class ApiClient {
@@ -69,7 +68,7 @@ export class ApiClient {
     }
 
     const headers: Record<string, string> = {
-      'X-API-Key': this.apiKey,
+      'X-Api-Key': this.apiKey,
       'User-Agent': `agenzo-merchant-cli/${getCurrentVersion()}`,
     };
     if (options.body) headers['Content-Type'] = 'application/json';
@@ -117,9 +116,9 @@ export class ApiClient {
       );
     }
 
-    if (envelope.success === false || envelope.error) {
-      const code = envelope.error?.code ?? ErrorCodes.BOOKING_FAILED;
-      const message = envelope.error?.message ?? `Request failed (HTTP ${response.status})`;
+    if (envelope.code !== undefined && envelope.code !== '0000') {
+      const code = envelope.code;
+      const message = envelope.message ?? `Request failed (HTTP ${response.status})`;
       throw new CliError(code, message);
     }
 

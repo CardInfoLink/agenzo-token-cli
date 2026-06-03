@@ -16,8 +16,27 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "lint": "eslint src",
+    "test:drift": "node scripts/schema-drift-check.mjs",
     "prepublishOnly": "npm run build"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CardInfoLink/agenzo-token-cli.git",
+    "directory": "merchant-cli"
+  },
+  "homepage": "https://github.com/CardInfoLink/agenzo-token-cli/tree/main/merchant-cli#readme",
+  "bugs": {
+    "url": "https://github.com/CardInfoLink/agenzo-token-cli/issues"
+  },
+  "author": "CardInfoLink",
+  "keywords": [
+    "cli",
+    "ai-agent",
+    "ride-hailing",
+    "merchant",
+    "fintech",
+    "developer-tools"
+  ],
   "engines": {
     "node": ">=18.0.0"
   },

@@ -9,6 +9,9 @@ Agent how to discover capabilities and drive the full ride lifecycle.
 - Auth: every runtime command needs `--api-key <key>` (sent as `X-API-Key`).
 - Output: JSON by default (machine-readable). Add `--format table` only for
   human display.
+- Streams: parse **stdout** for results. Progress spinners and status lines go
+  to **stderr** and never contaminate stdout — read only stdout as data. (The
+  spinner is auto-suppressed when stderr is not a TTY, e.g. agent-invoked.)
 - Automation: pass `--yes` to skip interactive prompts. In `--yes` mode every
   required value must be supplied via flags.
 - Host: defaults to `https://agent.everonet.com`. Change with

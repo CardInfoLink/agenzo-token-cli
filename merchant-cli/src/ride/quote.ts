@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { ApiClient } from '../core/api-client.js';
 import { CliError } from '../core/errors.js';
 import { emit, type OutputFormat } from '../core/output.js';
+import { createSpinner } from '../core/formatter.js';
 import { PromptEngine } from '../core/prompt-engine.js';
 import { attachSchemaHelp } from '../utils/cli-help.js';
 import type { QuoteResponse } from '../types/api.js';
@@ -27,7 +28,7 @@ export const quoteSchema = {
   response: {
     vehicle_classes:
       'VehicleClass[] — each: vehicle_class, price{amount,currency,quote_id}, passenger_capacity, luggage_capacity (amount is a decimal in the currency standard unit, e.g. 42.50 = $42.50)',
-    meet_and_greet: 'boolean',
+    meet_and_greet: 'object|null — { available: boolean, price: { amount, currency } } when applicable',
     is_airport_transfer: 'boolean',
     airport_direction: 'string|null — pickup/dropoff direction for airport transfers',
   },
@@ -89,8 +90,15 @@ export function buildQuoteCommand(): Command {
       if (o.passengerEmail !== undefined) body.passenger_email = o.passengerEmail;
 
       const client = new ApiClient({ apiKey });
-      const data = await client.post<QuoteResponse>('/rides/search', { body });
-      emit(data, format);
+      const spinner = createSpinner('Fetching quotes...');
+      try {
+        const data = await client.post<QuoteResponse>('/ride/quote', { body });
+        spinner.stop();
+        emit(data, format);
+      } catch (err) {
+        spinner.fail('Quote request failed');
+        throw err;
+      }
     });
 
   return attachSchemaHelp(cmd, quoteSchema);

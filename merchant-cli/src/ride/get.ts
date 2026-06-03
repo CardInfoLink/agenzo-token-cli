@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import { ApiClient } from '../core/api-client.js';
 import { emit, type OutputFormat } from '../core/output.js';
+import { createSpinner } from '../core/formatter.js';
 import { PromptEngine } from '../core/prompt-engine.js';
 import { attachSchemaHelp } from '../utils/cli-help.js';
 import type { GetOrderResponse } from '../types/api.js';
@@ -39,10 +40,17 @@ export function buildRideGetCommand(): Command {
       const orderId = await PromptEngine.resolveInput(o.orderId, { message: 'Order id:' });
 
       const client = new ApiClient({ apiKey });
-      const data = await client.get<GetOrderResponse>(
-        `/rides/${encodeURIComponent(orderId)}/status`,
-      );
-      emit(data, format);
+      const spinner = createSpinner('Fetching ride status...');
+      try {
+        const data = await client.get<GetOrderResponse>(
+          `/ride/${encodeURIComponent(orderId)}/status`,
+        );
+        spinner.stop();
+        emit(data, format);
+      } catch (err) {
+        spinner.fail('Failed to fetch ride status');
+        throw err;
+      }
     });
 
   return attachSchemaHelp(cmd, rideGetSchema);

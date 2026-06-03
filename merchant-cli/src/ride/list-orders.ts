@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import { ApiClient } from '../core/api-client.js';
 import { emit, type OutputFormat } from '../core/output.js';
+import { createSpinner } from '../core/formatter.js';
 import { PromptEngine } from '../core/prompt-engine.js';
 import { attachSchemaHelp } from '../utils/cli-help.js';
 import type { ListOrdersResponse } from '../types/api.js';
@@ -38,15 +39,22 @@ export function buildListOrdersCommand(): Command {
       });
 
       const client = new ApiClient({ apiKey });
-      const data = await client.get<ListOrdersResponse>('/rides/orders', {
-        query: {
-          page: Number(o.page),
-          page_size: Number(o.pageSize),
-          status: o.status,
-          order_type: o.orderType,
-        },
-      });
-      emit(data, format);
+      const spinner = createSpinner('Fetching orders...');
+      try {
+        const data = await client.get<ListOrdersResponse>('/ride/orders', {
+          query: {
+            page: Number(o.page),
+            page_size: Number(o.pageSize),
+            status: o.status,
+            order_type: o.orderType,
+          },
+        });
+        spinner.stop();
+        emit(data, format);
+      } catch (err) {
+        spinner.fail('Failed to fetch orders');
+        throw err;
+      }
     });
 
   return attachSchemaHelp(cmd, listOrdersSchema);

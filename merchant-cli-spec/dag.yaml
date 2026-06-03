@@ -1,0 +1,98 @@
+setup: '[ -f merchant-cli/package.json ] && (cd merchant-cli && npm install) || true'
+integration_check: cd merchant-cli && npm install && npm run build && npx tsc --noEmit
+phases:
+- name: phase1
+  type: parallel
+  tasks:
+  - foundation
+- name: phase2
+  type: parallel
+  tasks:
+  - docs
+  - ride-read
+  - ride-write
+  - services
+tasks:
+  foundation:
+    spec: specs/foundation.md
+    files_owned:
+    - merchant-cli/package.json
+    - merchant-cli/tsconfig.json
+    - merchant-cli/tsup.config.ts
+    - merchant-cli/eslint.config.js
+    - merchant-cli/src/index.ts
+    - merchant-cli/src/core/api-client.ts
+    - merchant-cli/src/core/formatter.ts
+    - merchant-cli/src/core/output.ts
+    - merchant-cli/src/core/prompt-engine.ts
+    - merchant-cli/src/core/errors.ts
+    - merchant-cli/src/core/version.ts
+    - merchant-cli/src/core/config-manager.ts
+    - merchant-cli/src/types/api.ts
+    - merchant-cli/src/utils/idempotency.ts
+    acceptance:
+    - cd merchant-cli && npm install && npm run build
+    - cd merchant-cli && npx tsc --noEmit
+    - test -f merchant-cli/dist/index.js
+    - cd merchant-cli && node dist/index.js --help 2>&1 | grep -Eq 'config' && node
+      dist/index.js --help 2>&1 | grep -Eq 'services' && node dist/index.js --help
+      2>&1 | grep -Eq 'ride'
+    - cd merchant-cli && npx eslint src
+  ride-read:
+    spec: specs/ride-read.md
+    depends_on:
+    - foundation
+    files_owned:
+    - merchant-cli/src/ride/quote.ts
+    - merchant-cli/src/ride/get.ts
+    - merchant-cli/src/ride/list-orders.ts
+    acceptance:
+    - cd merchant-cli && npx tsc --noEmit
+    - cd merchant-cli && npm run build && node dist/index.js ride quote --help
+    - cd merchant-cli && node dist/index.js ride quote --help --format json
+    - cd merchant-cli && node dist/index.js ride list-orders --help
+    - cd merchant-cli && npx eslint src/ride/quote.ts src/ride/get.ts src/ride/list-orders.ts
+  ride-write:
+    spec: specs/ride-write.md
+    depends_on:
+    - foundation
+    files_owned:
+    - merchant-cli/src/ride/book.ts
+    - merchant-cli/src/ride/cancel.ts
+    acceptance:
+    - cd merchant-cli && npx tsc --noEmit
+    - cd merchant-cli && npm run build && node dist/index.js ride book --help
+    - cd merchant-cli && node dist/index.js ride book --help --format json
+    - cd merchant-cli && node dist/index.js ride cancel --help
+    - grep -q 'BACK-034' merchant-cli/src/ride/book.ts
+    - cd merchant-cli && npx eslint src/ride/book.ts src/ride/cancel.ts
+  services:
+    spec: specs/services.md
+    depends_on:
+    - foundation
+    files_owned:
+    - merchant-cli/src/services/registry.ts
+    - merchant-cli/src/services/list.ts
+    - merchant-cli/src/services/get.ts
+    acceptance:
+    - cd merchant-cli && npx tsc --noEmit
+    - cd merchant-cli && npm run build && node dist/index.js services list | grep
+      -q ride
+    - cd merchant-cli && node dist/index.js services list | grep -q pay_per_call
+    - cd merchant-cli && node dist/index.js services get ride
+    - cd merchant-cli && node dist/index.js services get nope 2>&1 | grep -q SERVICE_NOT_FOUND
+    - cd merchant-cli && npx eslint src/services/registry.ts src/services/list.ts
+      src/services/get.ts
+  docs:
+    spec: specs/docs.md
+    depends_on:
+    - foundation
+    files_owned:
+    - merchant-cli/README.md
+    - merchant-cli/SKILL.md
+    acceptance:
+    - test -s merchant-cli/README.md
+    - test -s merchant-cli/SKILL.md
+    - grep -q 'agenzo-merchant-cli' merchant-cli/README.md
+    - grep -Eq 'quote' merchant-cli/SKILL.md && grep -Eq 'book' merchant-cli/SKILL.md
+shared_files: []

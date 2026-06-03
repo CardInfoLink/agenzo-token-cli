@@ -111,6 +111,23 @@ Add `--format table` for a readable summary instead:
 agenzo-merchant-cli ride list-orders --api-key sk_xxx --format table
 ```
 
+### Progress feedback
+
+Ride commands make a network call, so while one is in flight the CLI shows a
+spinner (e.g. `⠋ Fetching quotes...`) so you can tell it is working rather than
+hung. This feedback is written to **stderr**, never stdout — so piping or
+redirecting stdout still yields a clean payload:
+
+```bash
+# stdout stays pure JSON; the spinner (on stderr) does not leak in
+agenzo-merchant-cli ride quote --api-key sk_xxx ... | jq '.vehicle_classes'
+```
+
+The spinner animates only when stderr is an interactive terminal (TTY). When
+output is piped, redirected, or run in CI / by an agent, the animation is
+suppressed so no control characters end up in logs. Local commands (`config`,
+`services`) return instantly and show no spinner.
+
 ### Idempotency
 
 Write operations (`ride book`, `ride cancel`) require a caller-supplied

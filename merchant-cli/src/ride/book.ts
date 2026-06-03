@@ -1,12 +1,16 @@
 /*
- * TODO(BACK-034): once the backend rework lands, switch the `--payment-method-id`
- * flag to `--payment-order-id` (payment-order reverse-lookup mode). Tracked under
- * internal ticket BACK-034.
+ * Booking funding is decided server-side by the developer's billing_mode:
+ *   - monthly_settlement: no payment handle; fare is deducted from the
+ *     developer's settlement account (payment_status=ON_ACCOUNT).
+ *   - pay_per_call: pass --payment-order-id (a PAID order from payment-cli).
+ *     Reserved — gated server-side until payment-cli ships (BACK-040).
+ * The CLI no longer accepts --payment-method-id (the merchant domain never
+ * holds a payment credential).
  */
 import { Command } from 'commander';
 import { ApiClient } from '../core/api-client.js';
 import { emit, emitSchema, type OutputFormat, type VerbSchema } from '../core/output.js';
-import { Formatter } from '../core/formatter.js';
+import { Formatter, createSpinner } from '../core/formatter.js';
 import { PromptEngine } from '../core/prompt-engine.js';
 import { resolveIdempotencyKey } from '../utils/idempotency.js';
 
@@ -18,19 +22,19 @@ export const bookSchema: VerbSchema = {
     'vehicle-class': 'string — required, chosen vehicle class',
     'price-amount': 'number — required, fare in decimal currency units (not cents)',
     'price-currency': 'string — currency code (default USD)',
-    'payment-method-id': 'string — required, payment method to charge',
+    'payment-order-id': 'string — conditional. Required for pay_per_call billing (a PAID order from payment-cli); omit for monthly_settlement (deducted from the settlement account)',
     'passenger-name': 'string — required, passenger full name',
     'passenger-phone': 'string — required, passenger phone',
     'passenger-email': 'string — optional passenger email',
     'luggage-count': 'number — optional luggage count',
     'special-requests': 'string — optional free-text requests',
-    'pickup-lat': 'number — optional pickup latitude',
-    'pickup-lng': 'number — optional pickup longitude',
-    'pickup-name': 'string — optional pickup location name',
-    'dropoff-lat': 'number — optional dropoff latitude',
-    'dropoff-lng': 'number — optional dropoff longitude',
-    'dropoff-name': 'string — optional dropoff location name',
-    'pickup-time': 'string — optional ISO 8601 pickup time',
+    'pickup-lat': 'number — required, pickup latitude',
+    'pickup-lng': 'number — required, pickup longitude',
+    'pickup-name': 'string — required, pickup location name',
+    'dropoff-lat': 'number — required, dropoff latitude',
+    'dropoff-lng': 'number — required, dropoff longitude',
+    'dropoff-name': 'string — required, dropoff location name',
+    'pickup-time': 'number|string — required, epoch seconds or "now" (must match quote)',
     'meet-and-greet': 'boolean — optional meet & greet service',
     'meet-and-greet-price': 'number — optional meet & greet surcharge',
     'welcome-sign': 'string — optional welcome sign text',
@@ -42,9 +46,11 @@ export const bookSchema: VerbSchema = {
   },
   response: {
     ride_id: 'string — booked ride id, used by `ride get` / `ride cancel`',
-    order_id: 'string — created order id',
-    price: '{ amount, currency } — confirmed fare',
-    elife: 'object — upstream provider (elife) passthrough fields',
+    order_id: 'string — internal ride order id (rio_...)',
+    status: 'string — initial ride status (e.g. INIT / Pending)',
+    price: '{ amount, currency, quote_id } — confirmed fare',
+    payment_status: 'string — ON_ACCOUNT (monthly_settlement) or PAID (pay_per_call)',
+    billing_entry_id: 'string — settlement ledger entry id (monthly_settlement only)',
   },
 };
 
@@ -60,7 +66,7 @@ export function buildBookCommand(): Command {
     .option('--vehicle-class <class>', 'Chosen vehicle class')
     .option('--price-amount <amount>', 'Fare in decimal currency units (not cents)')
     .option('--price-currency <currency>', 'Currency code (default USD)')
-    .option('--payment-method-id <id>', 'Payment method to charge')
+    .option('--payment-order-id <id>', 'Paid payment order id (pay_per_call mode only)')
     .option('--passenger-name <name>', 'Passenger full name')
     .option('--passenger-phone <phone>', 'Passenger phone')
     .option('--passenger-email <email>', 'Passenger email')
@@ -72,7 +78,7 @@ export function buildBookCommand(): Command {
     .option('--dropoff-lat <lat>', 'Dropoff latitude')
     .option('--dropoff-lng <lng>', 'Dropoff longitude')
     .option('--dropoff-name <name>', 'Dropoff location name')
-    .option('--pickup-time <time>', 'Pickup time (ISO 8601)')
+    .option('--pickup-time <time>', 'Pickup time: epoch seconds, or "now"')
     .option('--meet-and-greet', 'Enable meet & greet service')
     .option('--meet-and-greet-price <amount>', 'Meet & greet surcharge')
     .option('--welcome-sign <text>', 'Welcome sign text')
@@ -104,9 +110,6 @@ export function buildBookCommand(): Command {
       const priceAmount = await PromptEngine.resolveInput(merged.priceAmount, {
         message: 'Price amount (decimal):',
       });
-      const paymentMethodId = await PromptEngine.resolveInput(merged.paymentMethodId, {
-        message: 'Payment method id:',
-      });
       const passengerName = await PromptEngine.resolveInput(merged.passengerName, {
         message: 'Passenger name:',
       });
@@ -119,10 +122,14 @@ export function buildBookCommand(): Command {
         vehicle_class: vehicleClass,
         price_amount: Number(priceAmount),
         price_currency: merged.priceCurrency ?? 'USD',
-        payment_method_id: paymentMethodId,
         passenger_name: passengerName,
         passenger_phone: passengerPhone,
       };
+      // Funding is decided server-side by the developer's billing_mode:
+      // - monthly_settlement: no payment handle (deducted from the account)
+      // - pay_per_call: --payment-order-id (a PAID order from payment-cli)
+      // Both flags are optional here; the backend rejects the wrong one.
+      if (merged.paymentOrderId) body.payment_order_id = merged.paymentOrderId;
       if (merged.passengerEmail) body.passenger_email = merged.passengerEmail;
       if (merged.luggageCount !== undefined) body.luggage_count = Number(merged.luggageCount);
       if (merged.specialRequests) body.special_requests = merged.specialRequests;
@@ -150,7 +157,14 @@ export function buildBookCommand(): Command {
 
       const idempotencyKey = await resolveIdempotencyKey(merged.idempotencyKey, { yes });
       const client = new ApiClient({ apiKey });
-      const data = await client.post('/rides/book', { body, idempotencyKey });
-      emit(data, format);
+      const spinner = createSpinner('Booking ride...');
+      try {
+        const data = await client.post('/ride/book', { body, idempotencyKey });
+        spinner.stop();
+        emit(data, format);
+      } catch (err) {
+        spinner.fail('Booking failed');
+        throw err;
+      }
     });
 }

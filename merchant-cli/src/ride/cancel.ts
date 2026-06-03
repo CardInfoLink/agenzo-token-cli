@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import { ApiClient } from '../core/api-client.js';
 import { emit, emitSchema, type OutputFormat, type VerbSchema } from '../core/output.js';
-import { Formatter } from '../core/formatter.js';
+import { Formatter, createSpinner } from '../core/formatter.js';
 import { PromptEngine } from '../core/prompt-engine.js';
 import { resolveIdempotencyKey } from '../utils/idempotency.js';
 
@@ -54,7 +54,14 @@ export function buildCancelCommand(): Command {
 
       const idempotencyKey = await resolveIdempotencyKey(merged.idempotencyKey, { yes });
       const client = new ApiClient({ apiKey });
-      const data = await client.post(`/rides/${encodeURIComponent(orderId)}/cancel`, { idempotencyKey });
-      emit(data, format);
+      const spinner = createSpinner('Cancelling ride...');
+      try {
+        const data = await client.post(`/ride/${encodeURIComponent(orderId)}/cancel`, { idempotencyKey });
+        spinner.stop();
+        emit(data, format);
+      } catch (err) {
+        spinner.fail('Cancellation failed');
+        throw err;
+      }
     });
 }
