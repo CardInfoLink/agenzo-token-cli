@@ -21,7 +21,6 @@ export const serviceGetSchema: VerbSchema = {
     workflow: 'string[] — ordered steps quote→book→get(poll)→[cancel]',
     since: 'string — ISO date',
     discovery: '{ help_command: string }',
-    billing: '{ mode: "pay_per_call" }',
   },
 };
 

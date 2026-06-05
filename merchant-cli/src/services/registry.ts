@@ -1,18 +1,18 @@
 /**
- * Built-in static capability registry — no backend required.
+ * Built-in static capability registry.
+ *
+ * NOTE: this is a CLI-bundled, single-merchant catalog — NOT a live backend
+ * discovery feed. It does not reflect which services are enabled for the
+ * current API key, nor the developer's billing mode (that is a per-developer
+ * property decided by the backend, surfaced via the `book` response /
+ * error codes, not advertised here). When the `merchant-discovery` backend
+ * lands, `services list/get` should fetch from it instead of this table.
  *
  * Each entry describes a CLI-exposed service: which `cli_noun` group hosts it,
  * the verbs it offers (with one-line descriptions), the recommended call
- * `workflow`, discovery hints, and its billing mode. `services list` renders a
- * summary of these entries and `services get <service-id>` returns one in full.
+ * `workflow`, and discovery hints. `services list` renders a summary of these
+ * entries and `services get <service-id>` returns one in full.
  */
-
-/** Billing model for a service. This iteration only ships pay-per-call. */
-export type BillingMode = 'pay_per_call';
-
-export interface ServiceBilling {
-  mode: BillingMode;
-}
 
 export interface ServiceDiscovery {
   /** Command an agent can run to discover the verbs in detail. */
@@ -37,18 +37,17 @@ export interface ServiceCapability {
   /** ISO date the capability became available. */
   since: string;
   discovery: ServiceDiscovery;
-  billing: ServiceBilling;
 }
 
-/** Static registry. This iteration ships a single `ride` capability. */
+/** Static registry. This iteration ships a single `ride-elife` capability. */
 export const SERVICE_REGISTRY: ServiceCapability[] = [
   {
-    service_id: 'ride',
-    name: 'Ride',
+    service_id: 'ride-elife',
+    name: 'Ride hailing (eLife)',
     description: 'On-demand ride ordering: quote a fare, book it, poll status, and cancel.',
     version: '1.0.0',
     provider: 'elife',
-    cli_noun: 'ride',
+    cli_noun: 'ride-elife',
     verbs: ['quote', 'book', 'get', 'cancel', 'list-orders'],
     verb_descriptions: {
       quote: 'Request fare quotes for a ride between two points.',
@@ -59,8 +58,7 @@ export const SERVICE_REGISTRY: ServiceCapability[] = [
     },
     workflow: ['quote', 'book', 'get (poll for status)', 'cancel (optional)'],
     since: '2026-06-01',
-    discovery: { help_command: 'agenzo-merchant-cli ride --help' },
-    billing: { mode: 'pay_per_call' },
+    discovery: { help_command: 'agenzo-merchant-cli ride-elife --help' },
   },
 ];
 

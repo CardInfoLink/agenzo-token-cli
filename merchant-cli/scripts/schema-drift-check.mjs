@@ -39,7 +39,7 @@ if (!KEY) {
 function declaredResponseKeys(verb) {
   const out = execFileSync(
     CLI,
-    [CLI_ENTRY, 'ride', verb, '--help', '--format', 'json'],
+    [CLI_ENTRY, 'ride-elife', verb, '--help', '--format', 'json'],
     { encoding: 'utf-8' },
   );
   const schema = JSON.parse(out);

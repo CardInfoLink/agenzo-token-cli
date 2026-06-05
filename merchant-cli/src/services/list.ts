@@ -8,7 +8,7 @@ export const servicesListSchema: VerbSchema = {
   params: {},
   response: {
     services:
-      'Service[] — each with service_id, name, provider, cli_noun, version, verbs, billing_mode',
+      'Service[] — each with service_id, name, provider, cli_noun, version, verbs',
   },
 };
 
@@ -34,7 +34,6 @@ export function buildServicesListCommand(): Command {
         cli_noun: s.cli_noun,
         version: s.version,
         verbs: s.verbs.join(', '),
-        billing_mode: s.billing.mode,
       }));
       emit(services, format);
     });

@@ -53,15 +53,15 @@ async function main(): Promise<void> {
       emit({ host: getHost() }, resolveFormat(cmd));
     });
 
-  // ride group
-  const ride = program
-    .command('ride')
-    .description('Ride ordering: quote, book, get, cancel, list-orders');
-  ride.addCommand(buildQuoteCommand());
-  ride.addCommand(buildBookCommand());
-  ride.addCommand(buildRideGetCommand());
-  ride.addCommand(buildCancelCommand());
-  ride.addCommand(buildListOrdersCommand());
+  // ride-elife group
+  const rideElife = program
+    .command('ride-elife')
+    .description('Ride ordering (eLife): quote, book, get, cancel, list-orders');
+  rideElife.addCommand(buildQuoteCommand());
+  rideElife.addCommand(buildBookCommand());
+  rideElife.addCommand(buildRideGetCommand());
+  rideElife.addCommand(buildCancelCommand());
+  rideElife.addCommand(buildListOrdersCommand());
 
   // services group
   const services = program.command('services').description('Service registry: list, get');

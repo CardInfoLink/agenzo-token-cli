@@ -42,20 +42,20 @@ agenzo-merchant-cli config set-host https://agent.everonet.com
 agenzo-merchant-cli services list --api-key sk_xxx
 
 # 3. Get fare quotes for a trip
-agenzo-merchant-cli ride quote --api-key sk_xxx \
+agenzo-merchant-cli ride-elife quote --api-key sk_xxx \
   --pickup-lat 1.3 --pickup-lng 103.8 --pickup-name "Changi" \
   --dropoff-lat 1.29 --dropoff-lng 103.85 --dropoff-name "Marina Bay"
 
 # 4. Book against a returned quote (write op → idempotency key required)
-agenzo-merchant-cli --yes ride book --api-key sk_xxx \
+agenzo-merchant-cli --yes ride-elife book --api-key sk_xxx \
   --quote-id qt_123 --vehicle-class standard \
   --passenger-name "Ada" --idempotency-key idem_001
 
 # 5. Poll the order until a terminal status
-agenzo-merchant-cli ride get ord_123 --api-key sk_xxx
+agenzo-merchant-cli ride-elife get ord_123 --api-key sk_xxx
 
 # 6. Cancel if needed (write op → idempotency key required)
-agenzo-merchant-cli --yes ride cancel ord_123 --api-key sk_xxx --idempotency-key idem_002
+agenzo-merchant-cli --yes ride-elife cancel ord_123 --api-key sk_xxx --idempotency-key idem_002
 ```
 
 ## Commands
@@ -67,11 +67,11 @@ agenzo-merchant-cli --yes ride cancel ord_123 --api-key sk_xxx --idempotency-key
 | `config show` | Show the current configuration |
 | `services list` | List available merchant services |
 | `services get <service-id>` | Retrieve a single service by id |
-| `ride quote` | Request fare quotes between two points |
-| `ride book` | Book a ride against a returned quote |
-| `ride get <order-id>` | Retrieve a single ride order |
-| `ride cancel <order-id>` | Cancel a ride order (may incur a fee) |
-| `ride list-orders` | List ride orders (paginated, optional status filter) |
+| `ride-elife quote` | Request fare quotes between two points |
+| `ride-elife book` | Book a ride against a returned quote |
+| `ride-elife get <order-id>` | Retrieve a single ride order (add `--watch` to poll until terminal, NDJSON stream) |
+| `ride-elife cancel <order-id>` | Cancel a ride order (may incur a fee) |
+| `ride-elife list-orders` | List ride orders (paginated, optional status filter) |
 
 ### Command Reference
 
@@ -86,15 +86,16 @@ agenzo-merchant-cli services list --api-key sk_xxx
 agenzo-merchant-cli services get svc_001 --api-key sk_xxx
 
 # Ride flow
-agenzo-merchant-cli ride quote --api-key sk_xxx \
+agenzo-merchant-cli ride-elife quote --api-key sk_xxx \
   --pickup-lat <lat> --pickup-lng <lng> --pickup-name <name> \
   --dropoff-lat <lat> --dropoff-lng <lng> --dropoff-name <name> [--service-id <id>]
-agenzo-merchant-cli ride book --api-key sk_xxx \
+agenzo-merchant-cli ride-elife book --api-key sk_xxx \
   --quote-id <id> --vehicle-class <class> --passenger-name <name> \
   [--passenger-phone <phone>] [--passenger-email <email>] --idempotency-key <key>
-agenzo-merchant-cli ride get <order-id> --api-key sk_xxx
-agenzo-merchant-cli ride cancel <order-id> --api-key sk_xxx --idempotency-key <key>
-agenzo-merchant-cli ride list-orders --api-key sk_xxx [--status <status>] [--page <n>] [--page-size <n>]
+agenzo-merchant-cli ride-elife get <order-id> --api-key sk_xxx
+agenzo-merchant-cli ride-elife get <order-id> --api-key sk_xxx --watch [--watch-interval <s>] [--watch-timeout <s>]
+agenzo-merchant-cli ride-elife cancel <order-id> --api-key sk_xxx --idempotency-key <key>
+agenzo-merchant-cli ride-elife list-orders --api-key sk_xxx [--status <status>] [--page <n>] [--page-size <n>]
 ```
 
 ## Global Flags
@@ -103,7 +104,7 @@ agenzo-merchant-cli ride list-orders --api-key sk_xxx [--status <status>] [--pag
 |------|-------------|
 | `--format <json\|table>` | Output format. Defaults to `json`; pass `--format table` for a human-readable table. |
 | `--api-key <key>` | API key for runtime requests, sent as the `X-API-Key` header. |
-| `--idempotency-key <key>` | Caller-supplied idempotency key for write operations (`ride book`, `ride cancel`). |
+| `--idempotency-key <key>` | Caller-supplied idempotency key for write operations (`ride-elife book`, `ride-elife cancel`). |
 | `--yes` | Skip confirmation/interactive prompts (for automation / AI Agents). |
 
 ### Output format
@@ -112,7 +113,7 @@ All commands emit JSON by default, which is ideal for scripting and AI Agents.
 Add `--format table` for a readable summary instead:
 
 ```bash
-agenzo-merchant-cli ride list-orders --api-key sk_xxx --format table
+agenzo-merchant-cli ride-elife list-orders --api-key sk_xxx --format table
 ```
 
 ### Progress feedback
@@ -124,7 +125,7 @@ redirecting stdout still yields a clean payload:
 
 ```bash
 # stdout stays pure JSON; the spinner (on stderr) does not leak in
-agenzo-merchant-cli ride quote --api-key sk_xxx ... | jq '.vehicle_classes'
+agenzo-merchant-cli ride-elife quote --api-key sk_xxx ... | jq '.vehicle_classes'
 ```
 
 The spinner animates only when stderr is an interactive terminal (TTY). When
@@ -134,7 +135,7 @@ suppressed so no control characters end up in logs. Local commands (`config`,
 
 ### Idempotency
 
-Write operations (`ride book`, `ride cancel`) require a caller-supplied
+Write operations (`ride-elife book`, `ride-elife cancel`) require a caller-supplied
 `--idempotency-key`. The CLI **never** auto-generates one:
 
 - Without `--yes`, the CLI prompts for the key interactively.
@@ -145,7 +146,7 @@ The key must be 1–128 characters from `[A-Za-z0-9_-]` and is sent as the
 
 ## Authentication
 
-Runtime commands (`services`, `ride`) require `--api-key`. The value is sent on
+Runtime commands (`services`, `ride-elife`) require `--api-key`. The value is sent on
 every request as the `X-API-Key` header. `config` commands are local-only and
 need no API key.
 

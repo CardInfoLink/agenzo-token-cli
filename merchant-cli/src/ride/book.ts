@@ -18,7 +18,7 @@ import { resolveIdempotencyKey } from '../utils/idempotency.js';
 export const bookSchema: VerbSchema = {
   description: 'Book a ride against a previously returned quote.',
   params: {
-    'quote-id': 'string — required, quote id from `ride quote`',
+    'quote-id': 'string — required, quote id from `ride-elife quote`',
     'vehicle-class': 'string — required, chosen vehicle class',
     'price-amount': 'number — required, fare in decimal currency units (not cents)',
     'price-currency': 'string — currency code (default USD)',
@@ -45,9 +45,11 @@ export const bookSchema: VerbSchema = {
     'idempotency-key': 'string — required, sent as the Idempotency-Key header (never in body)',
   },
   response: {
-    ride_id: 'string — booked ride id, used by `ride get` / `ride cancel`',
+    ride_id: 'string — booked ride id, used by `ride-elife get` / `ride-elife cancel`',
     order_id: 'string — internal ride order id (rio_...)',
     status: 'string — initial ride status (e.g. INIT / Pending)',
+    is_scheduled: 'boolean — true = scheduled/airport ride, false = realtime',
+    order_type: 'string — realtime / airport (derived from pickup-time)',
     price: '{ amount, currency, quote_id } — confirmed fare',
     payment_status: 'string — ON_ACCOUNT (monthly_settlement) or PAID (pay_per_call)',
     billing_entry_id: 'string — settlement ledger entry id (monthly_settlement only)',
@@ -62,7 +64,7 @@ export function buildBookCommand(): Command {
     .option('--format <format>', 'Output format: json|table')
     .option('--api-key <key>', 'API key for runtime requests')
     .option('--yes', 'Skip confirmation prompts')
-    .option('--quote-id <id>', 'Quote id from `ride quote`')
+    .option('--quote-id <id>', 'Quote id from `ride-elife quote`')
     .option('--vehicle-class <class>', 'Chosen vehicle class')
     .option('--price-amount <amount>', 'Fare in decimal currency units (not cents)')
     .option('--price-currency <currency>', 'Currency code (default USD)')

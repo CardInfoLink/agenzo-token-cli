@@ -16,6 +16,7 @@ export const cancelSchema: VerbSchema = {
     ride_id: 'string — cancelled ride id',
     ride_stat: 'string — resulting ride status',
     cancellation: '{ cancellation_fee, reversal_amount, currency }',
+    refund_amount: 'number — amount credited back to the settlement balance (paid − cancellation_fee)',
   },
 };
 

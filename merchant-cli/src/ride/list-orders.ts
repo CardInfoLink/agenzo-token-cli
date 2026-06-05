@@ -16,7 +16,8 @@ export const listOrdersSchema = {
     'order-type': 'string — optional order type filter',
   },
   response: {
-    orders: 'Order[]',
+    orders:
+      'RideOrderListItem[] — each: order_id, ride_id, status, vehicle_class, is_scheduled, scheduled_at, price_amount, final_amount, price_currency, payment_status, final_settlement_status (pending|settled|no_adjustment|settlement_pending|not_applicable), cancellation_fee, provider, created_at, updated_at',
     total: 'number',
     page: 'number',
     page_size: 'number',
