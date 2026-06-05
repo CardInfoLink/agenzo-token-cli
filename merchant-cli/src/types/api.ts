@@ -107,9 +107,11 @@ export interface Vehicle {
 }
 
 /**
- * `ride get` response. Two server paths share this shape: live elife status and
- * the local-cache fallback (`_format_local_status`, marked with `source`).
- * Pickup/dropoff are `from`/`to` here (not `pickup`/`dropoff`).
+ * `ride get` response. Three server paths share this shape: live elife status,
+ * sandbox mock, and the local-cache fallback (`_format_local_status`, marked
+ * with `source`). Pickup/dropoff are `from_location`/`to_location` here —
+ * the v3 adapter dumps elife's CombinedRideResponse with by_alias=false, so the
+ * keys are the snake_case python names, NOT the elife `from`/`to` aliases.
  */
 export interface GetOrderResponse {
   ride_id: string | number;
@@ -117,8 +119,8 @@ export interface GetOrderResponse {
   /** 'local_cache' when served from the local fallback record; 'mock' in sandbox. */
   source?: string;
   is_scheduled?: boolean;
-  from?: GeoPoint;
-  to?: GeoPoint;
+  from_location?: GeoPoint;
+  to_location?: GeoPoint;
   pickup_time?: number | string;
   vehicle_class?: string | null;
   price?: Price;

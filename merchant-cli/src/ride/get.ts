@@ -37,8 +37,8 @@ export const rideGetSchema = {
   response: {
     status:
       'OrderStatus — case-sensitive; terminal states: At destination | Cancelled | Rejected | Customer no show | Driver no show',
-    from: 'GeoPoint — pickup',
-    to: 'GeoPoint — dropoff',
+    from_location: 'GeoPoint — pickup',
+    to_location: 'GeoPoint — dropoff',
     pickup_time: 'number|string',
     vehicle_class: 'string',
     price: 'Price{amount,currency} — amount is a decimal in the currency standard unit',

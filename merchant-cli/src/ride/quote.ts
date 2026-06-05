@@ -18,8 +18,8 @@ export const quoteSchema = {
     'dropoff-lng': 'number — dropoff longitude',
     'dropoff-name': 'string — dropoff location name',
     'pickup-time': 'number|string — epoch seconds, or "now"',
-    'passenger-name': 'string — lead passenger full name',
-    'passenger-phone': 'string — passenger phone in E.164 format',
+    'passenger-name': 'string — optional, lead passenger full name',
+    'passenger-phone': 'string — optional, passenger phone in E.164 format',
     'passenger-count': 'number — optional passenger count',
     'luggage-count': 'number — optional luggage count',
     'passenger-email': 'string — optional passenger email',
@@ -81,9 +81,9 @@ export function buildQuoteCommand(): Command {
           name: need(o.dropoffName, 'dropoff-name'),
         },
         pickup_time: o.pickupTime === 'now' ? 'now' : num(o.pickupTime, 'pickup-time'),
-        passenger_name: need(o.passengerName, 'passenger-name'),
-        passenger_phone: need(o.passengerPhone, 'passenger-phone'),
       };
+      if (o.passengerName) body.passenger_name = o.passengerName;
+      if (o.passengerPhone) body.passenger_phone = o.passengerPhone;
       if (o.passengerCount !== undefined) body.passenger_count = num(o.passengerCount, 'passenger-count');
       if (o.luggageCount !== undefined) body.luggage_count = num(o.luggageCount, 'luggage-count');
       if (o.childrenCount !== undefined) body.children_count = num(o.childrenCount, 'children-count');

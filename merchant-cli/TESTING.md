@@ -99,21 +99,23 @@ quote_id / vehicle_class / price.amount，C 档要用。**
 | # | 变体 | 预期 |
 |---|------|------|
 | B1.1 | 上面的命令 | 多车型报价 |
-| B1.2 | 加 `--format table` | 表格输出 |
-| B1.3 | 加 `--passenger-count 2 --luggage-count 3` | 正常返回 |
+| B1.2 | 上面命令末尾加 `--format table` | 表格输出 |
+| B1.3 | 上面命令末尾加 `--passenger-count 2 --luggage-count 3` | 正常返回 |
 
 ### B2. ride-elife list-orders
+
 | # | 命令 | 预期 |
 |---|------|------|
 | B2.1 | `agenzo-merchant-cli --api-key $KEY ride-elife list-orders` | 返回 orders/total/page/page_size（首次可能空） |
-| B2.2 | `... ride-elife list-orders --page 1 --page-size 5` | 分页正常 |
-| B2.3 | `... ride-elife list-orders --format table` | orders 渲染成子表格 |
+| B2.2 | `agenzo-merchant-cli --api-key $KEY ride-elife list-orders --page 1 --page-size 5` | 分页正常 |
+| B2.3 | `agenzo-merchant-cli --api-key $KEY ride-elife list-orders --format table` | orders 渲染成子表格 |
 
 ### B3. 鉴权错误
+
 | # | 命令 | 预期 |
 |---|------|------|
 | B3.1 | `agenzo-merchant-cli --api-key sk_wrong ride-elife list-orders` | 报 1002 认证失败，退出码非 0 |
-| B3.2 | `agenzo-merchant-cli ride-elife list-orders`（不带 key） | 交互式提示输入 API key |
+| B3.2 | `agenzo-merchant-cli ride-elife list-orders`（不带 --api-key） | 交互式提示输入 API key |
 
 ### B4. org / developer 归属隔离
 > 再跑一次 seed 脚本造**第二个** key（KEY2），用它访问第一个账号的订单。

@@ -141,7 +141,9 @@ export function buildBookCommand(): Command {
       if (merged.dropoffLat || merged.dropoffLng || merged.dropoffName) {
         body.dropoff = { lat: Number(merged.dropoffLat), lng: Number(merged.dropoffLng), name: merged.dropoffName };
       }
-      if (merged.pickupTime) body.pickup_time = merged.pickupTime;
+      if (merged.pickupTime) {
+        body.pickup_time = merged.pickupTime === 'now' ? 'now' : Number(merged.pickupTime);
+      }
       if (merged.meetAndGreet) body.meet_and_greet = true;
       if (merged.meetAndGreetPrice !== undefined) body.meet_and_greet_price = Number(merged.meetAndGreetPrice);
       if (merged.welcomeSign) body.welcome_sign = merged.welcomeSign;
