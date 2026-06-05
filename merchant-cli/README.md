@@ -43,19 +43,27 @@ agenzo-merchant-cli services list --api-key sk_xxx
 
 # 3. Get fare quotes for a trip
 agenzo-merchant-cli ride-elife quote --api-key sk_xxx \
-  --pickup-lat 1.3 --pickup-lng 103.8 --pickup-name "Changi" \
-  --dropoff-lat 1.29 --dropoff-lng 103.85 --dropoff-name "Marina Bay"
+  --pickup-lat 1.3644 --pickup-lng 103.9915 --pickup-name "Changi Airport" \
+  --dropoff-lat 1.2834 --dropoff-lng 103.8607 --dropoff-name "Marina Bay" \
+  --pickup-time now
 
 # 4. Book against a returned quote (write op → idempotency key required)
 agenzo-merchant-cli --yes ride-elife book --api-key sk_xxx \
-  --quote-id qt_123 --vehicle-class standard \
-  --passenger-name "Ada" --idempotency-key idem_001
+  --quote-id <quote_id> --vehicle-class <vehicle_class> \
+  --price-amount <amount> --price-currency USD \
+  --passenger-name "Ada" --passenger-phone "+6591234567" \
+  --pickup-lat 1.3644 --pickup-lng 103.9915 --pickup-name "Changi Airport" \
+  --dropoff-lat 1.2834 --dropoff-lng 103.8607 --dropoff-name "Marina Bay" \
+  --pickup-time now --idempotency-key idem_001
 
-# 5. Poll the order until a terminal status
-agenzo-merchant-cli ride-elife get ord_123 --api-key sk_xxx
+# 5. Poll the order until a terminal status (NDJSON stream)
+agenzo-merchant-cli ride-elife get --order-id <ride_id> --api-key sk_xxx --watch
 
 # 6. Cancel if needed (write op → idempotency key required)
-agenzo-merchant-cli --yes ride-elife cancel ord_123 --api-key sk_xxx --idempotency-key idem_002
+agenzo-merchant-cli --yes ride-elife cancel --order-id <ride_id> --api-key sk_xxx --idempotency-key idem_002
+
+# 7. List all orders
+agenzo-merchant-cli ride-elife list-orders --api-key sk_xxx
 ```
 
 ## Commands
@@ -85,16 +93,35 @@ agenzo-merchant-cli config show
 agenzo-merchant-cli services list --api-key sk_xxx
 agenzo-merchant-cli services get svc_001 --api-key sk_xxx
 
-# Ride flow
+# Ride flow — quote
 agenzo-merchant-cli ride-elife quote --api-key sk_xxx \
   --pickup-lat <lat> --pickup-lng <lng> --pickup-name <name> \
-  --dropoff-lat <lat> --dropoff-lng <lng> --dropoff-name <name> [--service-id <id>]
+  --dropoff-lat <lat> --dropoff-lng <lng> --dropoff-name <name> \
+  --pickup-time <epoch|"now"> \
+  [--passenger-name <name>] [--passenger-phone <phone>] \
+  [--passenger-count <n>] [--luggage-count <n>] [--children-count <n>]
+
+# Ride flow — book (price-amount/vehicle-class must match the quote response)
 agenzo-merchant-cli ride-elife book --api-key sk_xxx \
-  --quote-id <id> --vehicle-class <class> --passenger-name <name> \
-  [--passenger-phone <phone>] [--passenger-email <email>] --idempotency-key <key>
-agenzo-merchant-cli ride-elife get <order-id> --api-key sk_xxx
-agenzo-merchant-cli ride-elife get <order-id> --api-key sk_xxx --watch [--watch-interval <s>] [--watch-timeout <s>]
-agenzo-merchant-cli ride-elife cancel <order-id> --api-key sk_xxx --idempotency-key <key>
+  --quote-id <id> --vehicle-class <class> \
+  --price-amount <amount> --price-currency <USD> \
+  --passenger-name <name> --passenger-phone <phone> \
+  [--passenger-email <email>] \
+  --pickup-lat <lat> --pickup-lng <lng> --pickup-name <name> \
+  --dropoff-lat <lat> --dropoff-lng <lng> --dropoff-name <name> \
+  --pickup-time <epoch|"now"> \
+  [--meet-and-greet] [--welcome-sign <text>] \
+  [--arrival-flight-no <no>] [--departure-flight-no <no>] \
+  --idempotency-key <key>
+
+# Ride flow — get status
+agenzo-merchant-cli ride-elife get --order-id <ride_id> --api-key sk_xxx
+agenzo-merchant-cli ride-elife get --order-id <ride_id> --api-key sk_xxx --watch [--watch-interval <s>] [--watch-timeout <s>]
+
+# Ride flow — cancel
+agenzo-merchant-cli ride-elife cancel --order-id <ride_id> --api-key sk_xxx --idempotency-key <key>
+
+# Ride flow — list orders
 agenzo-merchant-cli ride-elife list-orders --api-key sk_xxx [--status <status>] [--page <n>] [--page-size <n>]
 ```
 
@@ -161,6 +188,22 @@ agenzo-merchant-cli config set-host http://localhost:8000   # local dev
 agenzo-merchant-cli config reset-host                        # back to https://agent.everonet.com
 agenzo-merchant-cli config show
 ```
+
+## Error Codes (Ride)
+
+| Code | HTTP | Meaning |
+|------|------|---------|
+| 1801 | 404 | `VEHICLE_UNAVAILABLE` — No vehicles available for this trip |
+| 1802 | 410 | `QUOTE_EXPIRED` — Quote has expired, request a new one |
+| 1803 | 502 | `BOOKING_FAILED` — elife rejected the booking (details in response) |
+| 1804 | 409 | `CANCELLATION_NOT_ALLOWED` — Cannot cancel in current status |
+| 1805 | 404 | `RIDE_NOT_FOUND` — Order not found (or belongs to another org) |
+| 1809 | 402 | `ACCOUNT_INSUFFICIENT_BALANCE` — Not enough balance |
+| 1811 | 400 | `PRICE_MISMATCH` — price_amount doesn't match the quoted price |
+| 1812 | 400 | `VEHICLE_CLASS_MISMATCH` — vehicle_class doesn't match the quote |
+
+When a booking fails (1803), the response `data.elife_details` contains the
+upstream error for debugging (e.g. missing required fields).
 
 ## Amounts
 

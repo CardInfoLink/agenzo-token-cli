@@ -84,3 +84,34 @@
 - `ride-elife book --help --format json` / `list-orders --help --format json` 确认新字段出现在 schema
 - 连本地后端实跑 quote→book→get(--watch)→cancel→list-orders 全流程，CLI 输出字段与后端一致
 - `scripts/schema-drift-check.mjs` 留待连测试后端 + v3 key 时跑（需 live 后端）
+
+---
+
+## 五、v0.2.0 新增改动
+
+### 5.1 服务端权威定价 + 前置校验
+
+后端 `/book` 现在强制校验客户端传入的 `price_amount` 和 `vehicle_class`：
+
+- **PRICE_MISMATCH (1811)**：传入金额与 quote 报价不一致时拒绝
+- **VEHICLE_CLASS_MISMATCH (1812)**：传入车型与 quote 车型不一致时拒绝
+- 即使绕过前置校验（Redis 过期），后端仍用 elife 响应里的权威价格落库/扣款（P0 兜底）
+
+### 5.2 字段名对齐生产
+
+- `GetOrderResponse` 的 `from`/`to` → `from_location`/`to_location`（匹配生产 elife 响应）
+- 新增 `pickup_time` 字段
+
+### 5.3 quote 参数放宽
+
+- `--passenger-name` 和 `--passenger-phone` 在 quote 时**不再必填**（elife 报价不需要乘客信息）
+- book 时仍为必填
+
+### 5.4 预约单 pickup-time 修复
+
+- CLI book 命令现在正确将数字字符串的 `--pickup-time` 转为 int 发给后端（之前字符串导致预约单报错）
+
+### 5.5 错误详情透传
+
+- elife 返回的具体错误信息（如 "passenger.email: This field is required"）现在直接透传给 CLI 端
+- 不再显示无用的通用 "booking could not be completed" 消息
