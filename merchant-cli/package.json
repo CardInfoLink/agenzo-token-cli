@@ -1,0 +1,56 @@
+{
+  "name": "@agenzo/merchant-cli",
+  "version": "0.2.2",
+  "description": "CLI tool for AI Agents to order rides and query merchant services",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "agenzo-merchant-cli": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "SKILL.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint src",
+    "test:drift": "node scripts/schema-drift-check.mjs",
+    "prepublishOnly": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CardInfoLink/agenzo-token-cli.git",
+    "directory": "merchant-cli"
+  },
+  "homepage": "https://github.com/CardInfoLink/agenzo-token-cli/tree/main/merchant-cli#readme",
+  "bugs": {
+    "url": "https://github.com/CardInfoLink/agenzo-token-cli/issues"
+  },
+  "author": "CardInfoLink",
+  "keywords": [
+    "cli",
+    "ai-agent",
+    "ride-hailing",
+    "merchant",
+    "fintech",
+    "developer-tools"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@inquirer/prompts": "^8.4.2",
+    "commander": "^14.0.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@types/node": "^25.6.0",
+    "eslint": "^9.0.0",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.0.0"
+  }
+}
