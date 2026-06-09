@@ -111,6 +111,7 @@ agenzo-merchant-cli ride-elife book --api-key sk_xxx \
   --dropoff-lat <lat> --dropoff-lng <lng> --dropoff-name <name> \
   --pickup-time <epoch|"now"> \
   [--meet-and-greet] [--welcome-sign <text>] \
+  [--child-seat-count <n>] [--infant-seat-count <n>] [--toddler-seat-count <n>] \
   [--arrival-flight-no <no>] [--departure-flight-no <no>] \
   --idempotency-key <key>
 
@@ -204,6 +205,10 @@ agenzo-merchant-cli config show
 
 When a booking fails (1803), the response `data.elife_details` contains the
 upstream error for debugging (e.g. missing required fields).
+
+**Note:** `--passenger-email` is **required for scheduled/airport rides** (elife
+requires it for the airport partner). Omitting it for a scheduled ride results
+in a 1803 error with message "passenger.email: This field is required".
 
 ## Amounts
 
