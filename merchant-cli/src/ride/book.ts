@@ -38,6 +38,9 @@ export const bookSchema: VerbSchema = {
     'meet-and-greet': 'boolean — optional meet & greet service',
     'meet-and-greet-price': 'number — optional meet & greet surcharge',
     'welcome-sign': 'string — optional welcome sign text',
+    'child-seat-count': 'number — optional child seats (0-5)',
+    'infant-seat-count': 'number — optional infant seats (0-5)',
+    'toddler-seat-count': 'number — optional toddler seats (0-5)',
     'arrival-flight-no': 'string — optional arrival flight number',
     'arrival-airline': 'string — optional arrival airline',
     'departure-flight-no': 'string — optional departure flight number',
@@ -84,6 +87,9 @@ export function buildBookCommand(): Command {
     .option('--meet-and-greet', 'Enable meet & greet service')
     .option('--meet-and-greet-price <amount>', 'Meet & greet surcharge')
     .option('--welcome-sign <text>', 'Welcome sign text')
+    .option('--child-seat-count <n>', 'Number of child seats needed')
+    .option('--infant-seat-count <n>', 'Number of infant seats needed')
+    .option('--toddler-seat-count <n>', 'Number of toddler seats needed')
     .option('--arrival-flight-no <no>', 'Arrival flight number')
     .option('--arrival-airline <airline>', 'Arrival airline')
     .option('--departure-flight-no <no>', 'Departure flight number')
@@ -147,6 +153,9 @@ export function buildBookCommand(): Command {
       if (merged.meetAndGreet) body.meet_and_greet = true;
       if (merged.meetAndGreetPrice !== undefined) body.meet_and_greet_price = Number(merged.meetAndGreetPrice);
       if (merged.welcomeSign) body.welcome_sign = merged.welcomeSign;
+      if (merged.childSeatCount !== undefined) body.child_seat_count = Number(merged.childSeatCount);
+      if (merged.infantSeatCount !== undefined) body.infant_seat_count = Number(merged.infantSeatCount);
+      if (merged.toddlerSeatCount !== undefined) body.toddler_seat_count = Number(merged.toddlerSeatCount);
       if (merged.arrivalFlightNo || merged.arrivalAirline) {
         body.arrival_flight = { flight_no: merged.arrivalFlightNo, airline: merged.arrivalAirline };
       }
